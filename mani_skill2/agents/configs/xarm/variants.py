@@ -6,7 +6,7 @@ from mani_skill2.sensors.camera import CameraConfig
 from .defaults import PandaDefaultConfig
 
 
-class PandaPourConfig(PandaDefaultConfig):
+class xarm7PourConfig(xarm7DefaultConfig):
     @property
     def controllers(self):
         controllers = super().controllers
