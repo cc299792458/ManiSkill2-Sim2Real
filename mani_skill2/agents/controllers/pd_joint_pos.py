@@ -66,6 +66,9 @@ class PDJointPosController(BaseController):
             self._step_size = (self._target_qpos - self._start_qpos) / self._sim_steps
         else:
             self.set_drive_targets(self._target_qpos)
+    
+    def get_target_qpos(self):
+        return self._target_qpos
 
     def before_simulation_step(self):
         self._step += 1
