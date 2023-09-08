@@ -99,7 +99,7 @@ def main():
     num_envs = args.n_envs
     max_episode_steps = args.max_episode_steps
     log_dir = args.log_dir
-    rollout_steps = 4000 # use to be 3200
+    rollout_steps = 8192 # use to be 3200
 
     obs_mode = "state"
     control_mode = "pd_ee_delta_pose"
@@ -181,7 +181,7 @@ def main():
         policy_kwargs=policy_kwargs,
         verbose=1,
         n_steps=rollout_steps // num_envs,
-        batch_size=400, # 400
+        batch_size=512, # 400
         gamma=0.8,     # default = 0.85
         gae_lambda=0.9,
         n_epochs=20,
