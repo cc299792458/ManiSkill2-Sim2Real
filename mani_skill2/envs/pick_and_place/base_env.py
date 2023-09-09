@@ -56,9 +56,9 @@ class StationaryManipulationEnv(BaseEnv):
         sphere.hide_visual()
         return sphere
 
-    def _configure_agent(self, sim_params):
+    def _configure_agent(self, sim_params, ee_type):
         agent_cls: Type[BaseAgent] = self.SUPPORTED_ROBOTS[self.robot_uid]
-        self._agent_cfg = agent_cls.get_default_config(sim_params)
+        self._agent_cfg = agent_cls.get_default_config(sim_params, ee_type)
 
     def _load_agent(self, sim_params):
         agent_cls: Type[XArm7] = self.SUPPORTED_ROBOTS[self.robot_uid]
@@ -94,12 +94,20 @@ class StationaryManipulationEnv(BaseEnv):
             self.agent.robot.set_pose(Pose([-0.562, 0, 0]))
         elif self.robot_uid in ['xarm7', 'xarm7_d435']:
             # TODO: verify the initial pose of ee
-            qpos = np.array(
-                [0, 0, 0, np.pi / 3, 0, np.pi / 3, -np.pi / 2, 0.0446430, 0.0446430]
-            )
-            qpos[:-2] += self._episode_rng.normal(
-                0, self.robot_init_qpos_noise, len(qpos) - 2
-            )
+            if self.ee_type == 'reduced_gripper':
+                qpos = np.array(
+                    [0, 0, 0, np.pi / 3, 0, np.pi / 3, -np.pi / 2, 0.0446430, 0.0446430]
+                )
+                qpos[:-2] += self._episode_rng.normal(
+                    0, self.robot_init_qpos_noise, len(qpos) - 2
+                )
+            elif self.ee_type == 'full_gripper':
+                qpos = np.array(
+                    [0, 0, 0, np.pi / 3, 0, np.pi / 3, -np.pi / 2, 0, 0, 0, 0, 0, 0]
+                )
+                qpos[:-6] += self._episode_rng.normal(
+                    0, self.robot_init_qpos_noise, len(qpos) - 6
+                )
             self.agent.reset(qpos)
             self.agent.robot.set_pose(Pose([-0.480, 0.0, 0.0]))
         else:

@@ -6,7 +6,7 @@ from mani_skill2.sensors.camera import CameraConfig
 
 
 class XArmDefaultConfig:
-    def __init__(self, sim_params) -> None:
+    def __init__(self, sim_params, ee_type='reduced_gripper') -> None:
         self.urdf_config = dict(
             _materials=dict(
                 gripper=dict(static_friction=sim_params['robot_fri_static'], 
@@ -26,11 +26,22 @@ class XArmDefaultConfig:
         self.arm_stiffness = sim_params['stiffness']    # NOTE: increase from 1e3
         self.arm_damping = sim_params['damping']  # NOTE: increase from 1e2
         self.arm_force_limit = sim_params['force_limit']
-
-        self.gripper_joint_names = [
-            "left_finger_joint",
-            "right_finger_joint",
-        ]
+        if ee_type == 'reduced_gripper':
+            self.gripper_joint_names = [
+                "left_finger_joint",
+                "right_finger_joint",
+            ]
+            self.ee_low, self.ee_high = -0.01, 0.0446430
+        elif ee_type == 'full_gripper':
+            self.gripper_joint_names = [
+                "left_outer_knuckle_joint",
+                "left_finger_joint",
+                "left_inner_knuckle_joint",
+                "right_outer_knuckle_joint",
+                "right_finger_joint",
+                "right_inner_knuckle_joint",
+            ]
+            self.ee_low, self.ee_high = 0, 860
         self.gripper_stiffness = sim_params['stiffness']    # NOTE: increase from 1e3
         self.gripper_damping = sim_params['damping']  # NOTE: increase from 1e2
         self.gripper_force_limit = sim_params['force_limit']
@@ -95,8 +106,8 @@ class XArmDefaultConfig:
         # However, tune a good force limit to have a good mimic behavior
         gripper_pd_joint_pos = PDJointPosMimicControllerConfig(
             self.gripper_joint_names,
-            -0.01,  # a trick to have force when the object is thin
-            0.0446430,
+            self.ee_low,  # a trick to have force when the object is thin
+            self.ee_high,
             self.gripper_stiffness,
             self.gripper_damping,
             self.gripper_force_limit,
@@ -133,9 +144,12 @@ class XArmDefaultConfig:
 
 
 class XArm7DefaultConfig(XArmDefaultConfig):
-    def __init__(self, sim_params) -> None:
-        super().__init__(sim_params)
-        self.urdf_path = "{PACKAGE_ASSET_DIR}/descriptions/xarm7_textured_with_gripper_reduced_dof_d435_v2.urdf"
+    def __init__(self, sim_params, ee_type) -> None:
+        super().__init__(sim_params, ee_type)
+        if ee_type == 'reduced_gripper':
+            self.urdf_path = "{PACKAGE_ASSET_DIR}/descriptions/xarm7_reduced_gripper.urdf"
+        elif ee_type == 'full_gripper':
+            self.urdf_path = "{PACKAGE_ASSET_DIR}/descriptions/xarm7_full_gripper.urdf"
         self.arm_joint_names = [
             "joint1",
             "joint2",
@@ -150,7 +164,7 @@ class XArm7DefaultConfig(XArmDefaultConfig):
 class XArm7D435DefaultConfig(XArmDefaultConfig):
     def __init__(self) -> None:
         super().__init__()
-        self.urdf_path = "{PACKAGE_ASSET_DIR}/descriptions/xarm7_textured_with_gripper_reduced_dof_d435_v2.urdf"
+        self.urdf_path = "{PACKAGE_ASSET_DIR}/descriptions/xarm7_reduced_gripper_d435.urdf"
         self.arm_joint_names = [
             "joint1",
             "joint2",

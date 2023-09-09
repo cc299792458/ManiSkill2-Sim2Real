@@ -96,6 +96,7 @@ class BaseEnv(gym.Env):
         fix_task_configuration: bool = False,
         render_by_sim_step: bool = False,
         paused: bool = False,
+        ee_type: str = None,
     ):
         # Create SAPIEN engine
         self._engine = sapien.Engine()
@@ -174,7 +175,7 @@ class BaseEnv(gym.Env):
         self._motion_data_type = motion_data_type
 
         # NOTE(jigu): Agent and camera configurations should not change after initialization.
-        self._configure_agent(sim_params)
+        self._configure_agent(sim_params, ee_type)
         self._configure_cameras()
         self._configure_render_cameras()
         # Override camera configurations
@@ -182,13 +183,14 @@ class BaseEnv(gym.Env):
             update_camera_cfgs_from_dict(self._camera_cfgs, camera_cfgs)
         if render_camera_cfgs is not None:
             update_camera_cfgs_from_dict(self._render_camera_cfgs, render_camera_cfgs)
+        self.ee_type = ee_type
 
         # Lighting
         self.enable_shadow = enable_shadow
 
         # Visual background
         self.bg_name = bg_name
-
+        
         # Facilitate monitoring task evaluation
         self.fix_task_configuration = fix_task_configuration
         self.render_by_sim_step = render_by_sim_step
