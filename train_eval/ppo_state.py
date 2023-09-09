@@ -57,7 +57,7 @@ def parse_args():
         "-n",
         "--n-envs",
         type=int,
-        default=16,
+        default=1,
         help="number of parallel envs to run. Note that increasing this does not increase rollout size",
     )
     parser.add_argument(
@@ -110,6 +110,7 @@ def main():
     fix_task_configuration = False
     render_by_sim_step = False
     paused = False
+    ee_type = 'reduced_gripper'
     if args.seed is not None:
         set_random_seed(args.seed)
 
@@ -133,6 +134,7 @@ def main():
                 fix_task_configuration = fix_task_configuration,
                 render_by_sim_step = render_by_sim_step,
                 paused=paused,
+                ee_type=ee_type,
             )
             # For training, we regard the task as a continuous task with infinite horizon.
             # you can use the ContinuousTaskWrapper here for that
