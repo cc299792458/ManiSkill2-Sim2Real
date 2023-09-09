@@ -75,7 +75,7 @@ def generate_motion_profile(
     timestamp = [(i + 1) * sim_step for i in range(motion_datas[next(iter(motion_datas))].shape[0])]
     for i, key in enumerate(motion_datas):
         if key != 'indexs':
-            plot_subplot(axs[i // ncols, i % ncols], timestamp, motion_datas[key], motion_data_type[i], colors, labels)
+            plot_subplot(axs[i // ncols, i % ncols], timestamp, motion_datas[key][:, :9], motion_data_type[i], colors, labels)
     plt.tight_layout()
     plt.savefig(output_dir + "/" + motion_profile_name)
     if verbose:
