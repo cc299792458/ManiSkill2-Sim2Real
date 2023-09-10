@@ -69,7 +69,7 @@ class StackCubeEnv(StationaryManipulationEnv):
     def _load_actors(self):
         self._add_ground(render=self.bg_name is None)
 
-        self.box_half_size = np.float32([0.02] * 3) # increase from 0.02 to 0.0245
+        self.box_half_size = np.float32([0.019] * 3) # increase from 0.02 to 0.0245
         self.cubeA = self._build_cube(self.box_half_size, color=(1, 0, 0), name="cubeA")
         self.cubeB = self._build_cube(
             self.box_half_size, color=(0, 1, 0), name="cubeB", static=False
@@ -287,14 +287,14 @@ class StackCubeEnv_v2(StackCubeEnv):
 
     def ungrasp_reward(self):
         gripper_width = (
-            self.agent.robot.get_qlimits()[-1, 1] * 2
+            self.agent.robot.get_qlimits()[-1, 1] + 0.01
         )  # NOTE: hard-coded with xarm, full-gripper
         # ungrasp reward
         is_cubeA_grasped = self.agent.check_grasp(self.cubeA)
         if not is_cubeA_grasped:
             reward = 1.0
         else:
-            reward = np.sum(self.agent.robot.get_qpos()[-2:]) / gripper_width
+            reward = (gripper_width - self.agent.robot.get_qpos()[-1]) / gripper_width
 
         v = np.linalg.norm(self.cubeA.velocity)
         av = np.linalg.norm(self.cubeA.angular_velocity)
