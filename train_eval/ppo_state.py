@@ -48,7 +48,7 @@ class SuccessInfoWrapper(gym.Wrapper):
 
                     
 def parse_args():
-    env_id = "PickCube-v2"
+    env_id = "PickCube-v3"
     parser = argparse.ArgumentParser(
         description="Use Stable-Baselines-3 PPO to train ManiSkill2 tasks"
     )
@@ -99,7 +99,7 @@ def main():
     num_envs = args.n_envs
     max_episode_steps = args.max_episode_steps
     log_dir = args.log_dir
-    rollout_steps = 8912 # use to be 3200
+    rollout_steps = 8192 # use to be 3200
 
     obs_mode = "state"
     control_mode = "pd_ee_delta_pose"
