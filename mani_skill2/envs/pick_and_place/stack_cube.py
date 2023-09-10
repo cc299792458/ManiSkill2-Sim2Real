@@ -288,7 +288,7 @@ class StackCubeEnv_v2(StackCubeEnv):
     def ungrasp_reward(self):
         gripper_width = (
             self.agent.robot.get_qlimits()[-1, 1] * 2
-        )  # NOTE: hard-coded with panda
+        )  # NOTE: hard-coded with xarm, full-gripper
         # ungrasp reward
         is_cubeA_grasped = self.agent.check_grasp(self.cubeA)
         if not is_cubeA_grasped:
@@ -301,6 +301,23 @@ class StackCubeEnv_v2(StackCubeEnv):
         static_reward = 1 - np.tanh(v*10 + av)
         
         return (reward + static_reward) / 2.0
+    
+    # def ungrasp_reward(self):
+    #     gripper_width = (
+    #         self.agent.robot.get_qlimits()[-1, 1] * 2
+    #     )  # NOTE: hard-coded with panda
+    #     # ungrasp reward
+    #     is_cubeA_grasped = self.agent.check_grasp(self.cubeA)
+    #     if not is_cubeA_grasped:
+    #         reward = 1.0
+    #     else:
+    #         reward = np.sum(self.agent.robot.get_qpos()[-2:]) / gripper_width
+    
+    #     v = np.linalg.norm(self.cubeA.velocity)
+    #     av = np.linalg.norm(self.cubeA.angular_velocity)
+    #     static_reward = 1 - np.tanh(v*10 + av)
+
+    #     return (reward + static_reward) / 2.0
         
     def compute_dense_reward(self, info, **kwargs):
 

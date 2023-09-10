@@ -408,7 +408,7 @@ class BaseEnv(gym.Env):
         self._clear()
 
         self._setup_scene(sim_params=sim_params)
-        self._load_agent(sim_params=sim_params)
+        self._load_agent(sim_params=sim_params, ee_type=self.ee_type)
         self._load_actors()
         self._load_articulations()
         self._setup_cameras()
@@ -625,9 +625,7 @@ class BaseEnv(gym.Env):
         self._before_control_step()
         if self.low_level_control_mode == 'position':
             sim_step = 0
-            # qvel_max = 0
             while True:
-                # Determine if it's time out
                 if sim_step >= self.time_out:
                     self._time_out = True
                     # print('time_out')
@@ -655,6 +653,7 @@ class BaseEnv(gym.Env):
                 # print((qvel < self.qvel_threshold).all())
                 # print(ee_p_dis < self.ee_p_threshold)
                 # print(ee_q_dis < self.ee_q_threshold)
+                # while True:
                 self.agent.before_simulation_step()
                 self._scene.step()
                 if self.render_by_sim_step:

@@ -113,3 +113,26 @@ class PDJointPosMimicController(PDJointPosController):
 
 class PDJointPosMimicControllerConfig(PDJointPosControllerConfig):
     controller_cls = PDJointPosMimicController
+
+class PDJointPosMimicConstraintController(PDJointPosMimicController):
+    def __init__(self, config: ControllerConfig, articulation, control_freq: int, sim_freq: int = None, active_dof=[0, 3]):
+        super().__init__(config, articulation, control_freq, sim_freq)
+        self.active_dof = active_dof
+
+    def set_drive_property(self):
+        n = len(self.joints)
+        stiffness = np.broadcast_to(self.config.stiffness, n)
+        damping = np.broadcast_to(self.config.damping, n)
+        force_limit = np.broadcast_to(self.config.force_limit, n)
+        friction = np.broadcast_to(self.config.friction, n)
+        # Only set property to active joints. 
+        # Here active joint are in the context of constraints.
+        for i, joint in enumerate(self.joints):
+            if i in self.active_dof:
+                joint.set_drive_property(
+                    stiffness[i], damping[i], force_limit=force_limit[i]
+                )
+                joint.set_friction(friction[i])
+
+class PDJointPosMimicConstraintControllerConfig(PDJointPosMimicControllerConfig):
+    controller_cls = PDJointPosMimicConstraintController

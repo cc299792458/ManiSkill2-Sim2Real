@@ -7,32 +7,65 @@ from mani_skill2.sensors.camera import CameraConfig
 
 class XArmDefaultConfig:
     def __init__(self, sim_params, ee_type='reduced_gripper') -> None:
-        self.urdf_config = dict(
-            _materials=dict(
-                gripper=dict(static_friction=sim_params['robot_fri_static'], 
-                            dynamic_friction=sim_params['robot_fri_dynamic'], 
-                            restitution=sim_params['robot_restitution'])
-            ),
-            link=dict(
-                left_finger=dict(
-                    material="gripper", patch_radius=0.1, min_patch_radius=0.1
-                ),
-                right_finger=dict(
-                    material="gripper", patch_radius=0.1, min_patch_radius=0.1
-                ),
-            ),
-        )
+        self.ee_type = ee_type
 
         self.arm_stiffness = sim_params['stiffness']    # NOTE: increase from 1e3
         self.arm_damping = sim_params['damping']  # NOTE: increase from 1e2
-        self.arm_force_limit = sim_params['force_limit']
-        if ee_type == 'reduced_gripper':
+        self.arm_force_limit = sim_params['arm_force_limit']
+        self.gripper_stiffness = sim_params['stiffness']    # NOTE: increase from 1e3
+        self.gripper_damping = sim_params['damping']  # NOTE: increase from 1e2
+        self.gripper_force_limit = sim_params['ee_force_limit']
+
+        if self.ee_type == 'reduced_gripper':
+            self.urdf_config = dict(
+                _materials=dict(
+                    gripper=dict(static_friction=sim_params['robot_fri_static'], 
+                                dynamic_friction=sim_params['robot_fri_dynamic'], 
+                                restitution=sim_params['robot_restitution'])
+                ),
+                link=dict(
+                    left_finger=dict(
+                        material="gripper", patch_radius=0.1, min_patch_radius=0.1
+                    ),
+                    right_finger=dict(
+                        material="gripper", patch_radius=0.1, min_patch_radius=0.1
+                    ),
+                ),  
+            )
             self.gripper_joint_names = [
                 "left_finger_joint",
                 "right_finger_joint",
             ]
             self.ee_low, self.ee_high = -0.01, 0.0446430
-        elif ee_type == 'full_gripper':
+            self.ee_cls_cfg = PDJointPosMimicControllerConfig
+        elif self.ee_type == 'full_gripper':
+            self.urdf_config = dict(
+                _materials=dict(
+                    gripper=dict(static_friction=sim_params['robot_fri_static'], 
+                                dynamic_friction=sim_params['robot_fri_dynamic'], 
+                                restitution=sim_params['robot_restitution'])
+                ),
+                link=dict(
+                    left_outer_knuckle=dict(
+                        material="gripper", patch_radius=0.1, min_patch_radius=0.1
+                    ),
+                    left_finger=dict(
+                        material="gripper", patch_radius=0.1, min_patch_radius=0.1
+                    ),
+                    left_inner_knuckle=dict(
+                        material="gripper", patch_radius=0.1, min_patch_radius=0.1
+                    ),
+                    right_outer_knuckle=dict(
+                        material="gripper", patch_radius=0.1, min_patch_radius=0.1
+                    ),
+                    right_finger=dict(
+                        material="gripper", patch_radius=0.1, min_patch_radius=0.1
+                    ),
+                    right_inner_knuckle=dict(
+                        material="gripper", patch_radius=0.1, min_patch_radius=0.1
+                    ),
+                ),  
+            )
             self.gripper_joint_names = [
                 "left_outer_knuckle_joint",
                 "left_finger_joint",
@@ -41,10 +74,9 @@ class XArmDefaultConfig:
                 "right_finger_joint",
                 "right_inner_knuckle_joint",
             ]
-            self.ee_low, self.ee_high = 0, 860
-        self.gripper_stiffness = sim_params['stiffness']    # NOTE: increase from 1e3
-        self.gripper_damping = sim_params['damping']  # NOTE: increase from 1e2
-        self.gripper_force_limit = sim_params['force_limit']
+            # 0.86 rather than 0.85 is a trick for catching very thin object.
+            self.ee_low, self.ee_high = 0, 0.86
+            self.ee_cls_cfg = PDJointPosMimicConstraintControllerConfig
 
         self.ee_link_name = "link_tcp"
 
@@ -104,7 +136,7 @@ class XArmDefaultConfig:
         # -------------------------------------------------------------------------- #
         # NOTE(jigu): IssacGym uses large P and D but with force limit
         # However, tune a good force limit to have a good mimic behavior
-        gripper_pd_joint_pos = PDJointPosMimicControllerConfig(
+        gripper_pd_joint_pos = self.ee_cls_cfg(
             self.gripper_joint_names,
             self.ee_low,  # a trick to have force when the object is thin
             self.ee_high,

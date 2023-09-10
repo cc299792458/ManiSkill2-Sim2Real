@@ -55,6 +55,7 @@ class BaseAgent:
         fix_root_link=True,
         config: AgentConfig = None,
         sim_params: dict = None,
+        ee_type: str = None,
     ):
         self.scene = scene
         self._control_freq = control_freq
@@ -74,7 +75,7 @@ class BaseAgent:
         # The control mode after reset for consistency
         self._default_control_mode = control_mode
 
-        self._load_articulation()
+        self._load_articulation(ee_type)
         self._setup_controllers()
         self.set_control_mode(control_mode)
         self._after_init()
@@ -83,20 +84,23 @@ class BaseAgent:
     def get_default_config(cls) -> AgentConfig:
         raise NotImplementedError
 
-    def _load_articulation(self):
+    def _load_articulation(self, ee_type):
         loader = self.scene.create_urdf_loader()
-        loader.fix_root_link = self.fix_root_link
-
         urdf_path = format_path(str(self.urdf_path))
-
         urdf_config = parse_urdf_config(self.urdf_config, self.scene)
         check_urdf_config(urdf_config)
-
+        robot_builder = loader.load_file_as_articulation_builder(urdf_path, urdf_config)
+        if ee_type == 'full_gripper':
+            link_group = ['right_outer_knuckle', 'right_finger', 'right_inner_knuckle',
+                          'left_outer_knuckle', 'left_finger', 'left_inner_knuckle',
+                          'xarm_gripper_base_link']
+            self._set_collision_group(robot_builder, link_group)
         # TODO(jigu): support loading multiple convex collision shapes
-        self.robot = loader.load(urdf_path, urdf_config)
+        self.robot = robot_builder.build(fix_root_link=self.fix_root_link)
         assert self.robot is not None, f"Fail to load URDF from {urdf_path}"
         self.robot.set_name(Path(urdf_path).stem)
-
+        if ee_type == 'full_gripper':
+            self._add_constraint()
         # Cache robot link ids
         self.robot_link_ids = [link.get_id() for link in self.robot.get_links()]
 
@@ -115,6 +119,30 @@ class BaseAgent:
     def _after_init(self):
         """After initialization. E.g., caching the end-effector link."""
         pass
+
+    def _add_constraint(self):
+        # Add left finger and right finget constraints, respectively
+        finger = next(j for j in self.robot.get_active_joints() if j.name == "left_finger_joint")
+        inner_knuckle = next(j for j in self.robot.get_active_joints() if j.name == "left_inner_knuckle_joint")
+        pad, lif = finger.get_child_link(), inner_knuckle.get_child_link()
+        # NOTE(chichu): p_f and p_p are calculated in advance
+        p_f = np.array([-1.7706577e-07, 3.5465002e-02, 4.2038992e-02], dtype=np.float32)
+        p_p = np.array([-1.6365516e-07, -1.4999986e-02, 1.4999956e-02], dtype=np.float32) 
+        left_drive = self.scene.create_drive(lif, sapien.Pose(p_f), pad, sapien.Pose(p_p))
+        left_drive.lock_motion(1, 1, 1, 0, 0, 0)
+
+        finger = next(j for j in self.robot.get_active_joints() if j.name == "right_finger_joint")
+        inner_knuckle = next(j for j in self.robot.get_active_joints() if j.name == "right_inner_knuckle_joint")
+        pad, lif = finger.get_child_link(), inner_knuckle.get_child_link()
+        p_f = np.array([-7.7380150e-08, -3.5464913e-02, 4.2038962e-02], dtype=np.float32)
+        p_p = np.array([-9.3990820e-08, 1.5000075e-02, 1.4999941e-02], dtype=np.float32)
+        right_drive = self.scene.create_drive(lif, sapien.Pose(p_f), pad, sapien.Pose(p_p))
+        right_drive.lock_motion(1, 1, 1, 0, 0, 0)
+
+    def _set_collision_group(self, robot_builder, link_group):
+        for link_builder in robot_builder.get_link_builders():
+            if link_builder.get_name() in link_group:
+                link_builder.set_collision_groups(1, 1, 2, 0)
 
     @property
     def control_mode(self):

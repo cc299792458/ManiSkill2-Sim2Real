@@ -60,10 +60,10 @@ class StationaryManipulationEnv(BaseEnv):
         agent_cls: Type[BaseAgent] = self.SUPPORTED_ROBOTS[self.robot_uid]
         self._agent_cfg = agent_cls.get_default_config(sim_params, ee_type)
 
-    def _load_agent(self, sim_params):
+    def _load_agent(self, sim_params, ee_type):
         agent_cls: Type[XArm7] = self.SUPPORTED_ROBOTS[self.robot_uid]
         self.agent = agent_cls(
-            self._scene, self._control_freq, self._control_mode, config=self._agent_cfg, sim_params=sim_params
+            self._scene, self._control_freq, self._control_mode, config=self._agent_cfg, sim_params=sim_params, ee_type=ee_type,
         )
         self.tcp: sapien.Link = get_entity_by_name(
             self.agent.robot.get_links(), self.agent.config.ee_link_name
