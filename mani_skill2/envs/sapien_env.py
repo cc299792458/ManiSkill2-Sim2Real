@@ -170,9 +170,11 @@ class BaseEnv(gym.Env):
         # Control mode
         self._control_mode = control_mode
         # Low level control mode
-        self._config_low_level_control(low_level_control_mode, sim_params)
+        self._config_low_level_control(low_level_control_mode, sim_params, ee_type)
         # Motion Profile
         self._motion_data_type = motion_data_type
+        # End Effector type
+        self.ee_type = ee_type
 
         # NOTE(jigu): Agent and camera configurations should not change after initialization.
         self._configure_agent(sim_params, ee_type)
@@ -183,7 +185,6 @@ class BaseEnv(gym.Env):
             update_camera_cfgs_from_dict(self._camera_cfgs, camera_cfgs)
         if render_camera_cfgs is not None:
             update_camera_cfgs_from_dict(self._render_camera_cfgs, render_camera_cfgs)
-        self.ee_type = ee_type
 
         # Lighting
         self.enable_shadow = enable_shadow
@@ -217,7 +218,7 @@ class BaseEnv(gym.Env):
         self._main_rng = np.random.RandomState(self._main_seed)
         return [self._main_seed]
 
-    def _config_low_level_control(self, low_level_control_mode, sim_params):
+    def _config_low_level_control(self, low_level_control_mode, sim_params, ee_type):
         if low_level_control_mode is None:
             low_level_control_mode = self.SUPPORTED_LOW_LEVEL_CONTROL_MODES[0]
         if low_level_control_mode not in self.SUPPORTED_LOW_LEVEL_CONTROL_MODES:
@@ -226,6 +227,10 @@ class BaseEnv(gym.Env):
         # Add break conditions for position control
         self.time_out = sim_params['time_out']
         self.qpos_threshold = 0.01
+        if ee_type == 'reduced_gripper':
+            self.qpos_ee_threshold = 0.02
+        elif ee_type == 'full_gripper':
+            self.qpos_ee_threshold = 0.5
         self.qvel_threshold = 0.5   # 0.01
         self.ee_p_threshold = 0.002
         self.ee_q_threshold = 0.2
@@ -642,12 +647,22 @@ class BaseEnv(gym.Env):
                 ee_pose_dis = ee_target_pose * ee_pose.inv()
                 ee_p_dis = np.linalg.norm(ee_pose_dis.p, 2)
                 ee_q_dis = np.arccos(np.clip(np.power(np.sum(ee_pose_dis.q), 2) * 2 - 1, -1 + 1e-8, 1 - 1e-8))
-                if (qpos_dis < self.qpos_threshold).all() and (qvel < self.qvel_threshold).all() \
-                            and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
-                    # print("Sim step:" + str(sim_step) + "; ee_p_dis:" + str(ee_p_dis) + "; ee_q_dis:" + str(ee_q_dis))
-                    # print(qvel_max)
-                    self._time_out = False
-                    break                
+                if self.ee_type == 'reduced_gripper':
+                    if (qpos_dis[: -2] < self.qpos_threshold).all() and (qpos_dis[-2: ] < self.qpos_ee_threshold).all() \
+                                and (qvel < self.qvel_threshold).all() \
+                                and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
+                        # print("Sim step:" + str(sim_step) + "; ee_p_dis:" + str(ee_p_dis) + "; ee_q_dis:" + str(ee_q_dis))
+                        # print(qvel_max)
+                        self._time_out = False
+                        break
+                elif self.ee_type == 'full_gripper':
+                    if (qpos_dis[: -6] < self.qpos_threshold).all() and (qpos_dis[-6: ] < self.qpos_ee_threshold).all() \
+                                and (qvel < self.qvel_threshold).all() \
+                                and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
+                        # print("Sim step:" + str(sim_step) + "; ee_p_dis:" + str(ee_p_dis) + "; ee_q_dis:" + str(ee_q_dis))
+                        # print(qvel_max)
+                        self._time_out = False
+                        break                
                 # print(sim_step)
                 # print((qpos_dis < self.qpos_threshold).all())
                 # print((qvel < self.qvel_threshold).all())

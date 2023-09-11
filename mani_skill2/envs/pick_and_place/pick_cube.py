@@ -228,8 +228,12 @@ class PickCubeEnv_v3(PickCubeEnv):
             if is_grasped:
                 reward += 1
             else:
-                gripper_width = self.agent.robot.get_qlimits()[-1, 1] + 0.01
-                reward += self.agent.robot.get_qpos()[-1] / gripper_width
+                if self.ee_type == 'reduced_gripper':
+                    gripper_limit = self.agent.robot.get_qlimits()[-1, 1]
+                    reward += self.agent.robot.get_qpos()[-1] / gripper_limit
+                elif self.ee_type == 'full_gripper':
+                    gripper_width = self.agent.robot.get_qlimits()[-1, 1] + 0.01
+                    reward += self.agent.robot.get_qpos()[-1] / gripper_width
 
         if is_grasped:
             obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
@@ -238,7 +242,10 @@ class PickCubeEnv_v3(PickCubeEnv):
 
             # static reward
             if self.check_obj_placed():
-                qvel = self.agent.robot.get_qvel()[:-2]
+                if self.ee_type == 'reduced_gripper':
+                    qvel = self.agent.robot.get_qvel()[:-2]
+                elif self.ee_type == 'full_gripper':
+                    qvel = self.agent.robot.get_qvel()[:-6]
                 static_reward = 1 - np.tanh(5 * np.linalg.norm(qvel))
                 reward += static_reward
 
