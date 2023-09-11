@@ -99,7 +99,7 @@ def main():
     num_envs = args.n_envs
     max_episode_steps = args.max_episode_steps
     log_dir = args.log_dir
-    rollout_steps = 8192 # use to be 3200
+    rollout_steps = 2048 # use to be 3200
 
     obs_mode = "state"
     control_mode = "pd_ee_delta_pose"
@@ -204,12 +204,12 @@ def main():
             eval_env,
             best_model_save_path=log_dir,
             log_path=log_dir,
-            eval_freq=10 * rollout_steps // num_envs,
+            eval_freq=1 * rollout_steps // num_envs,
             deterministic=True,
             render=False,
         )
         checkpoint_callback = CheckpointCallback(
-            save_freq=10 * rollout_steps // num_envs,
+            save_freq=1 * rollout_steps // num_envs,
             save_path=log_dir,
             name_prefix="rl_model",
             save_replay_buffer=True,

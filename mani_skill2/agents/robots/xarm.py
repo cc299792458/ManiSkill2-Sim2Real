@@ -74,5 +74,5 @@ class XArm7D435(XArm):
     _config: defaults.XArm7D435DefaultConfig
 
     @classmethod
-    def get_default_config(cls):
-        return defaults.XArm7D435DefaultConfig()
+    def get_default_config(cls, sim_params, ee_type):
+        return defaults.XArm7D435DefaultConfig(sim_params, ee_type)

@@ -194,9 +194,12 @@ class XArm7DefaultConfig(XArmDefaultConfig):
 
 
 class XArm7D435DefaultConfig(XArmDefaultConfig):
-    def __init__(self) -> None:
-        super().__init__()
-        self.urdf_path = "{PACKAGE_ASSET_DIR}/descriptions/xarm7_reduced_gripper_d435.urdf"
+    def __init__(self, sim_params, ee_type) -> None:
+        super().__init__(sim_params, ee_type)
+        if ee_type == 'reduced_gripper':
+            self.urdf_path = "{PACKAGE_ASSET_DIR}/descriptions/xarm7_reduced_gripper_d435.urdf"
+        elif ee_type == 'full_gripper':
+            self.urdf_path = "{PACKAGE_ASSET_DIR}/descriptions/xarm7_full_gripper.urdf"
         self.arm_joint_names = [
             "joint1",
             "joint2",
