@@ -65,6 +65,7 @@ def main():
     fix_task_configuration = True
     render_by_sim_step = True
     paused = True
+    ee_type = 'reduced_gripper' #'reduced_gripper', 'full_gripper'
 
     # import real_robot.envs
     import mani_skill2.envs
@@ -79,6 +80,7 @@ def main():
         fix_task_configuration=fix_task_configuration,
         render_by_sim_step=render_by_sim_step,
         paused=paused,
+        ee_type=ee_type,
     )
 
     env = SuccessInfoWrapper(env)
