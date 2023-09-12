@@ -57,7 +57,7 @@ def parse_args():
         "-n",
         "--n-envs",
         type=int,
-        default=1,
+        default=16,
         help="number of parallel envs to run. Note that increasing this does not increase rollout size",
     )
     parser.add_argument(
@@ -84,7 +84,7 @@ def parse_args():
         help="path for where logs, checkpoints, and videos are saved",
     )
     parser.add_argument(
-        "--eval", action="store_true", help="whether to only evaluate policy"
+        "--eval", action="store_false", help="whether to only evaluate policy"
     )
     parser.add_argument(
         "--model-path", type=str, help="path to sb3 model for evaluation"
@@ -99,7 +99,7 @@ def main():
     num_envs = args.n_envs
     max_episode_steps = args.max_episode_steps
     log_dir = args.log_dir
-    rollout_steps = 2048 # use to be 3200
+    rollout_steps = 4000 # use to be 3200
 
     obs_mode = "state"
     control_mode = "pd_ee_delta_pose"
@@ -183,7 +183,7 @@ def main():
         policy_kwargs=policy_kwargs,
         verbose=1,
         n_steps=rollout_steps // num_envs,
-        batch_size=512, # 400
+        batch_size=400, # 400
         gamma=0.8,     # default = 0.85
         gae_lambda=0.9,
         n_epochs=20,
@@ -199,17 +199,17 @@ def main():
         model = model.load(model_path)
     else:
         # define callbacks to periodically save our model and evaluate it to help monitor training
-        # the below freq values will save every 10 rollouts
+        # the below freq values will save every 5 rollouts
         eval_callback = EvalCallback(
             eval_env,
             best_model_save_path=log_dir,
             log_path=log_dir,
-            eval_freq=1 * rollout_steps // num_envs,
+            eval_freq=5 * rollout_steps // num_envs,
             deterministic=True,
             render=False,
         )
         checkpoint_callback = CheckpointCallback(
-            save_freq=1 * rollout_steps // num_envs,
+            save_freq=5 * rollout_steps // num_envs,
             save_path=log_dir,
             name_prefix="rl_model",
             save_replay_buffer=True,

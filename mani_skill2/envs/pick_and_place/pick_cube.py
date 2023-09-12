@@ -227,13 +227,13 @@ class PickCubeEnv_v3(PickCubeEnv):
         if reached:
             if is_grasped:
                 reward += 1
-            else:
-                if self.ee_type == 'reduced_gripper':
-                    gripper_limit = self.agent.robot.get_qlimits()[-1, 1]
-                    reward += self.agent.robot.get_qpos()[-1] / gripper_limit
-                elif self.ee_type == 'full_gripper':
-                    gripper_width = self.agent.robot.get_qlimits()[-1, 1] + 0.01
-                    reward += self.agent.robot.get_qpos()[-1] / gripper_width
+            # else:
+            #     if self.ee_type == 'reduced_gripper':
+            #         gripper_limit = self.agent.robot.get_qlimits()[-1, 1]
+            #         reward += 1 - self.agent.robot.get_qpos()[-1] / gripper_limit
+            #     elif self.ee_type == 'full_gripper':
+            #         gripper_width = self.agent.robot.get_qlimits()[-1, 1] + 0.01
+            #         reward += self.agent.robot.get_qpos()[-1] / gripper_width
 
         if is_grasped:
             obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
