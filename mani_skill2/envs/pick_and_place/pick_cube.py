@@ -73,6 +73,8 @@ class PickCubeEnv(StationaryManipulationEnv):
                 obj_pose=vectorize_pose(self.obj.pose),
                 tcp_to_obj_pos=self.obj.pose.p - self.tcp.pose.p,
                 obj_to_goal_pos=self.goal_pos - self.obj.pose.p,
+                # Add if the cube is grasped
+                obj_grasped=float(self.agent.check_grasp(self.obj)),
             )
         return obs
 
