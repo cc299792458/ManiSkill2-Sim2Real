@@ -18,23 +18,28 @@ class RealRobotEval():
     def __init__(self, env, model,
                  xarm_ip='192.168.1.229',
                  real_control_mode='pd_ee_delta_pose_axangle',
-                 robot_action_scale=100) -> None:
+                 robot_action_scale=100,
+                 enable_real_robot=False) -> None:
         self.env = env
         self.model = model
         self.xarm_ip=xarm_ip
         self._real_control_mode = real_control_mode
         self.robot_action_scale = robot_action_scale
-        self._configure_real_robot()
+        self.enable_real_robot = enable_real_robot
+        if self.enable_real_robot:
+            self._configure_real_robot()
     
     def reset(self):
-        self.real_robot.reset()
         obs = self.env.reset()
+        if self.enable_real_robot:
+            self.real_robot.reset()
 
         return obs
     
-    def step(self, action):
-        self.real_robot.set_action(action, wait=True)
-        obs, action, done, info = self.env.step(action)
+    def step(self, exe_action):
+        obs, action, done, info = self.env.step(exe_action)
+        if self.enable_real_robot:
+            self.real_robot.set_action(exe_action, wait=True)
 
         return obs, action, done, info
     
@@ -50,8 +55,8 @@ class RealRobotEval():
         )
 
 def main():
-    env_id = 'PickCube-v2'
-    log_dir = "./logs/PPO/PickCube-v2"
+    env_id = 'PickCube-v3'
+    log_dir = "./logs/PPO/PickCube-v3"
     record_dir = "logs/PPO/"+env_id
     rollout_steps = 4000
     num_envs = 16
@@ -61,11 +66,13 @@ def main():
     low_level_control_mode = 'position'
     motion_data_type = ['qpos', 'qvel', 'qacc', 'qf - passive_qf', 'qf']
     sim_params = generate_sim_params()
-    render_mode = 'human' # 'human', 'cameras'
+    render_mode = 'cameras' # 'human', 'cameras'
     fix_task_configuration = True
-    render_by_sim_step = True
-    paused = True
+    render_by_sim_step = False
+    paused = False
     ee_type = 'reduced_gripper' #'reduced_gripper', 'full_gripper'
+
+    enable_real_robot = True
 
     # import real_robot.envs
     import mani_skill2.envs
@@ -107,13 +114,16 @@ def main():
     model = model.load(model_path)
 
     #-----Instantiate eval object-----#
-    realroboteval = RealRobotEval(env=env, model=model)
+    realroboteval = RealRobotEval(env=env, model=model, enable_real_robot=enable_real_robot)
 
     done = False
     obs = realroboteval.reset()
+    num_step = 0
     while not done:
+        print(num_step)
         action = realroboteval.predict(obs, deterministic=True)[0]
         obs, action, done, info = realroboteval.step(action)
+        num_step += 1
 
 if __name__ == '__main__':
     main()

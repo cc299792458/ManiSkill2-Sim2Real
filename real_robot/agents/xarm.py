@@ -270,7 +270,7 @@ class XArm7:
         # Control gripper position
         ret_gripper = 0
         if not skip_gripper:
-            ret_gripper = self.arm.set_gripper_position(gripper_pos, wait=wait)
+            ret_gripper = self.arm.set_gripper_position(gripper_pos, wait=False)
 
         # Control xArm based on motion mode
         if self._motion_mode == "position":
@@ -278,14 +278,14 @@ class XArm7:
                 *delta_tcp_pose.p, *quat2euler(delta_tcp_pose.q, axes='sxyz'),
                 is_radian=True, wait=wait
             )
-            return ret_arm, ret_gripper
+            # return ret_arm, ret_gripper
         elif self._motion_mode == "servo":
             raise NotImplementedError("Do not use servo mode! Need fine waypoints")
             ret_arm = self.arm.set_servo_cartesian(
                 np.hstack([tgt_tcp_pose.p, quat2euler(tgt_tcp_pose.q, axes='sxyz')]),
                 is_radian=True, is_tool_coord=False
             )
-            return ret_arm, ret_gripper
+            # return ret_arm, ret_gripper
         elif self._motion_mode == "joint_teaching":
             raise ValueError("Joint teaching mode enabled (no action needed)")
         elif self._motion_mode == "joint_vel":
@@ -308,7 +308,7 @@ class XArm7:
                 qvel, is_radian=True, is_sync=True, duration=timestep
             )
             # time.sleep(timestep - 0.2)
-            return ret_arm, ret_gripper
+            # return ret_arm, ret_gripper
         elif self._motion_mode == "cartesian_vel":
             raise NotImplementedError(f"{self._motion_mode = } is not yet implemented")
 
@@ -318,7 +318,7 @@ class XArm7:
                 speeds_xyz_rpy, is_radian=True, is_tool_coord=True, duration=timestep
             )
             # time.sleep(timestep - 0.2)
-            return ret_arm, ret_gripper
+            # return ret_arm, ret_gripper
         elif self._motion_mode == "joint_online":
             _, tgt_qpos = self.arm.get_inverse_kinematics(
                 np.hstack([tgt_tcp_pose.p, quat2euler(tgt_tcp_pose.q, axes='sxyz')]),
@@ -328,16 +328,18 @@ class XArm7:
                 angle=tgt_qpos, speed=speed, mvacc=mvacc,
                 relative=False, is_radian=True, wait=wait
             )
-            return ret_arm, ret_gripper
+            # return ret_arm, ret_gripper
         elif self._motion_mode == "cartesian_online":
             ret_arm = self.arm.set_position(
                 *tgt_tcp_pose.p, *quat2euler(tgt_tcp_pose.q, axes='sxyz'),
                 speed=speed, mvacc=mvacc,
                 relative=False, is_radian=True, wait=wait
             )
-            return ret_arm, ret_gripper
+            # return ret_arm, ret_gripper
         else:
             raise NotImplementedError()
+
+        return ret_arm, ret_gripper
 
     def set_qpos(self, qpos, wait=False):
         """Set xarm qpos using maniskill2 qpos"""
