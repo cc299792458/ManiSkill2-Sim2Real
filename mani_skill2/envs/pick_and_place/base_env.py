@@ -142,7 +142,7 @@ class StationaryManipulationEnv(BaseEnv):
                 0, self.robot_init_qpos_noise, len(qpos) - 2
             )
             self.agent.reset(qpos)
-            self.agent.robot.set_pose(Pose([-0.480, 0.0, 0.0]))
+            self.agent.robot.set_pose(Pose([-0.480, 0.0, 0.0]))     # This should be -0.463XXX
         else:
             raise NotImplementedError(self.robot_uid)
 

@@ -103,6 +103,9 @@ class StackCubeEnv(StationaryManipulationEnv):
                 tcp_to_cubeA_pos=self.cubeA.pose.p - self.tcp.pose.p,
                 tcp_to_cubeB_pos=self.cubeB.pose.p - self.tcp.pose.p,
                 cubeA_to_cubeB_pos=self.cubeB.pose.p - self.cubeA.pose.p,
+                # Add some binary information to facilitate training.
+                is_cubeA_grasped=float(self.agent.check_grasp(self.cubeA)),
+                is_cubeA_on_cubeB=float(self._check_cubeA_on_cubeB()),
             )
         return obs
 
@@ -318,6 +321,74 @@ class StackCubeEnv_v2(StackCubeEnv):
     #     static_reward = 1 - np.tanh(v*10 + av)
 
     #     return (reward + static_reward) / 2.0
+        
+    def compute_dense_reward(self, info, **kwargs):
+
+        if info["success"]:
+            reward = 8
+        elif self._check_cubeA_on_cubeB():
+            reward = 6 + self.ungrasp_reward()
+        elif self.agent.check_grasp(self.cubeA):
+            reward = 4 + self.place_reward()
+        else:
+            reward = 2 + self.reaching_reward()
+
+        # reward = reward - 9.0
+        if info["time_out"]:
+            reward -= 3
+
+        return reward
+    
+@register_env("StackCube-v3", max_episode_steps=50)
+class StackCubeEnv_v3(StackCubeEnv):
+    def _get_obs_extra(self):
+        obs = OrderedDict(
+            tcp_pose=vectorize_pose(self.tcp.pose),
+        )
+        if self._obs_mode in ["state", "state_dict"]:
+            obs.update(
+                cubeA_pose=vectorize_pose(self.cubeA.pose),
+                cubeB_pose=vectorize_pose(self.cubeB.pose),
+                tcp_to_cubeA_pos=self.cubeA.pose.p - self.tcp.pose.p,
+                tcp_to_cubeB_pos=self.cubeB.pose.p - self.tcp.pose.p,
+                cubeA_to_cubeB_pos=self.cubeB.pose.p - self.cubeA.pose.p,
+                # Add some binary information to facilitate training.
+                is_cubeA_grasped=float(self.agent.check_grasp(self.cubeA)),
+                is_cubeA_on_cubeB=float(self._check_cubeA_on_cubeB()),
+            )
+        return obs
+    
+    def reaching_reward(self):
+        # reaching object reward
+        tcp_pose = self.tcp.pose.p
+        cubeA_pos = self.cubeA.pose.p
+        cubeA_to_tcp_dist = np.linalg.norm(tcp_pose - cubeA_pos)
+        return 1 - np.tanh(5 * cubeA_to_tcp_dist)
+
+    def place_reward(self):
+        cubeA_pos = self.cubeA.pose.p
+        cubeB_pos = self.cubeB.pose.p
+        goal_xyz = np.hstack([cubeB_pos[0:2], cubeB_pos[2] + self.box_half_size[2] * 2])
+        cubeA_to_goal_dist = np.linalg.norm(goal_xyz - cubeA_pos)
+        reaching_reward2 = 1 - np.tanh(5.0 * cubeA_to_goal_dist)
+        return reaching_reward2
+
+    def ungrasp_reward(self):
+        gripper_width = (
+            self.agent.robot.get_qlimits()[-1, 1]
+        )  # NOTE: hard-coded with xarm, reduced-gripper
+        # ungrasp reward
+        is_cubeA_grasped = self.agent.check_grasp(self.cubeA)
+        if not is_cubeA_grasped:
+            reward = 1.0
+        else:
+            reward = self.agent.robot.get_qpos()[-1] / gripper_width
+
+        v = np.linalg.norm(self.cubeA.velocity)
+        av = np.linalg.norm(self.cubeA.angular_velocity)
+        static_reward = 1 - np.tanh(v*10 + av)
+        
+        return (reward + static_reward) / 2.0
         
     def compute_dense_reward(self, info, **kwargs):
 

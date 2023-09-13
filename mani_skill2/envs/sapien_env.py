@@ -157,7 +157,7 @@ class BaseEnv(gym.Env):
         self._obs_mode = obs_mode
         # Observation history is used for simulating latency.
         self._obs_history = Queue(maxsize=self._sim_steps_latency)
-        self._total_sim_step = 0   # Used for stack history observation
+        self._total_sim_step = 0   # Used for stack history observation, total simulation step for 1 episode.
 
         # Reward mode
         if reward_mode is None:

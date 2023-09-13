@@ -223,12 +223,12 @@ class PickCubeEnv_v3(PickCubeEnv):
         tcp_to_obj_dist = np.linalg.norm(tcp_to_obj_pos)
         reaching_reward = 1 - np.tanh(5 * tcp_to_obj_dist)
         reward += reaching_reward
-        reached = True if tcp_to_obj_dist < 0.05 else False
+        # reached = True if tcp_to_obj_dist < 0.05 else False
         
         is_grasped = self.agent.check_grasp(self.obj) # remove max_angle=30 yeilds much better performance
-        if reached:
-            if is_grasped:
-                reward += 1
+        # if reached:
+        if is_grasped:
+            reward += 1
             # else:
             #     if self.ee_type == 'reduced_gripper':
             #         gripper_limit = self.agent.robot.get_qlimits()[-1, 1]
