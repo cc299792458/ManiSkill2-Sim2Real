@@ -355,8 +355,21 @@ class StackCubeEnv_v3(StackCubeEnv):
                 # Add some binary information to facilitate training.
                 is_cubeA_grasped=float(self.agent.check_grasp(self.cubeA)),
                 is_cubeA_on_cubeB=float(self._check_cubeA_on_cubeB()),
+                is_cubeA_lift=float(self._check_cubeA_lift()),
+                is_cubeA_above_cubeB=float(self._check_cubeA_above_cubeB())
             )
         return obs
+    
+    def _check_cubeA_lift(self, height=0.15):
+        cubeA_pos = self.cubeA.pose.p
+        cubeA_to_height_dist = np.abs(height - cubeA_pos[2])
+        return bool(cubeA_to_height_dist < 0.005)
+    
+    def _check_cubeA_above_cubeB(self):
+        cubeA_pos = self.cubeA.pose.p
+        cubeB_pos = self.cubeB.pose.p
+        cubeA_to_cubeB_dist = np.linalg.norm(cubeB_pos[:2] - cubeA_pos[:2])
+        return bool(cubeA_to_cubeB_dist < 0.005)
     
     def reaching_reward(self):
         # reaching object reward
@@ -364,6 +377,18 @@ class StackCubeEnv_v3(StackCubeEnv):
         cubeA_pos = self.cubeA.pose.p
         cubeA_to_tcp_dist = np.linalg.norm(tcp_pose - cubeA_pos)
         return 1 - np.tanh(5 * cubeA_to_tcp_dist)
+
+    def lift_reward(self, height=0.15):
+        cubeA_pos = self.cubeA.pose.p
+        cubeA_to_height_dist = np.abs(height - cubeA_pos[2])
+        return 1 - np.tanh(5 * cubeA_to_height_dist)
+    
+    def move_reward(self):
+        cubeA_pos = self.cubeA.pose.p
+        cubeB_pos = self.cubeB.pose.p
+        cubeA_to_cubeB_dist = np.linalg.norm(cubeB_pos[:2] - cubeA_pos[:2])
+        move_reward = 1 - np.tanh(5.0 * cubeA_to_cubeB_dist)
+        return move_reward
 
     def place_reward(self):
         cubeA_pos = self.cubeA.pose.p
@@ -395,9 +420,13 @@ class StackCubeEnv_v3(StackCubeEnv):
         if info["success"]:
             reward = 8
         elif self._check_cubeA_on_cubeB():
-            reward = 6 + self.ungrasp_reward()
+            reward = 7 + self.ungrasp_reward()
+        elif self._check_cubeA_above_cubeB():
+            reward = 6 + self.place_reward()
+        elif self._check_cubeA_lift():
+            reward = 5 + self.move_reward()
         elif self.agent.check_grasp(self.cubeA):
-            reward = 4 + self.place_reward()
+            reward = 4 + self.lift_reward()
         else:
             reward = 2 + self.reaching_reward()
 
