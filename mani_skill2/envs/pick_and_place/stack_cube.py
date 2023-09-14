@@ -369,7 +369,7 @@ class StackCubeEnv_v3(StackCubeEnv):
         cubeA_pos = self.cubeA.pose.p
         cubeB_pos = self.cubeB.pose.p
         cubeA_to_cubeB_dist = np.linalg.norm(cubeB_pos[:2] - cubeA_pos[:2])
-        return bool(cubeA_to_cubeB_dist < 0.005)
+        return bool(cubeA_to_cubeB_dist < 0.02)
     
     def reaching_reward(self):
         # reaching object reward
@@ -380,8 +380,10 @@ class StackCubeEnv_v3(StackCubeEnv):
 
     def lift_reward(self, height=0.15):
         cubeA_pos = self.cubeA.pose.p
-        cubeA_to_height_dist = np.abs(height - cubeA_pos[2])
-        return 1 - np.tanh(5 * cubeA_to_height_dist)
+        cubeB_pos = self.cubeB.pose.p
+        goal_pos = np.hstack([cubeB_pos[0:2], np.array([height])])
+        cubeA_to_subgoal_dist = np.linalg.norm(goal_pos - cubeA_pos)
+        return 1 - np.tanh(5 * cubeA_to_subgoal_dist)
     
     def move_reward(self):
         cubeA_pos = self.cubeA.pose.p

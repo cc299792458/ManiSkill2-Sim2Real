@@ -124,6 +124,8 @@ def main():
         action = realroboteval.predict(obs, deterministic=True)[0]
         obs, action, done, info = realroboteval.step(action)
         num_step += 1
+    
+    pause=True
 
 if __name__ == '__main__':
     main()
