@@ -76,8 +76,9 @@ class StackCubeEnv(StationaryManipulationEnv):
         )
 
     def _initialize_actors(self):
-        xy = self._episode_rng.uniform(-0.1, 0.1, [2])
-        region = [[-0.1, -0.2], [0.1, 0.2]]
+        xy = self._episode_rng.uniform(-0.05, 0.05, [2])
+        # decrease region size.
+        region = [[-0.1, -0.1], [0.1, 0.1]]
         sampler = UniformSampler(region, self._episode_rng)
         radius = np.linalg.norm(self.box_half_size[:2]) + 0.001
         cubeA_xy = xy + sampler.sample(radius, 100)
@@ -129,8 +130,8 @@ class StackCubeEnv(StationaryManipulationEnv):
             "is_cubaA_grasped": is_cubaA_grasped,
             "is_cubeA_on_cubeB": is_cubeA_on_cubeB,
             "is_cubeA_static": is_cubeA_static,
-            # "cubeA_vel": np.linalg.norm(self.cubeA.velocity),
-            # "cubeA_ang_vel": np.linalg.norm(self.cubeA.angular_velocity),
+            "cubeA_vel": np.linalg.norm(self.cubeA.velocity),
+            "cubeA_ang_vel": np.linalg.norm(self.cubeA.angular_velocity),
             "success": success,
         }
 
