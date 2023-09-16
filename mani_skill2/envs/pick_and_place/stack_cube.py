@@ -363,6 +363,25 @@ class StackCubeEnv_v3(StackCubeEnv):
             )
         return obs
     
+    def evaluate(self, **kwargs):
+        is_cubeA_on_cubeB = self._check_cubeA_on_cubeB()
+        is_cubeA_static = check_actor_static(self.cubeA)
+        is_cubaA_grasped = self.agent.check_grasp(self.cubeA)
+        is_cubeA_lift = self._check_cubeA_lift()
+        is_cubeA_above_cubeB = self._check_cubeA_above_cubeB()
+        success = is_cubeA_on_cubeB and is_cubeA_static and (not is_cubaA_grasped)
+        
+        return {
+            "is_cubaA_grasped": is_cubaA_grasped,
+            "is_cubeA_on_cubeB": is_cubeA_on_cubeB,
+            "is_cubeA_static": is_cubeA_static,
+            "is_cubeA_lift": is_cubeA_lift,
+            "is_cubeA_above_cubeB": is_cubeA_above_cubeB,
+            "cubeA_vel": np.linalg.norm(self.cubeA.velocity),
+            "cubeA_ang_vel": np.linalg.norm(self.cubeA.angular_velocity),
+            "success": success,
+        }
+    
     def _check_cubeA_lift(self, height=0.08):
         cubeA_pos = self.cubeA.pose.p
         cubeA_to_height_dist = np.abs(height - cubeA_pos[2])
@@ -437,6 +456,6 @@ class StackCubeEnv_v3(StackCubeEnv):
 
         # reward = reward - 9.0
         if info["time_out"]:
-            reward -= 1
+            reward -= 3
 
         return reward
