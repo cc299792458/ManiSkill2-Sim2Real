@@ -199,17 +199,17 @@ def main():
         model = model.load(model_path)
     else:
         # define callbacks to periodically save our model and evaluate it to help monitor training
-        # the below freq values will save every 5 rollouts
+        # the below freq values will save every 20 rollouts
         eval_callback = EvalCallback(
             eval_env,
             best_model_save_path=log_dir,
             log_path=log_dir,
-            eval_freq=5 * rollout_steps // num_envs,
+            eval_freq=20 * rollout_steps // num_envs,
             deterministic=True,
             render=False,
         )
         checkpoint_callback = CheckpointCallback(
-            save_freq=5 * rollout_steps // num_envs,
+            save_freq=20 * rollout_steps // num_envs,
             save_path=log_dir,
             name_prefix="rl_model",
             save_replay_buffer=True,
