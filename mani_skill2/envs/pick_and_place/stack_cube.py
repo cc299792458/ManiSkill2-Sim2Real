@@ -354,6 +354,8 @@ class StackCubeEnv_v3(StackCubeEnv):
                 tcp_to_cubeB_pos=self.cubeB.pose.p - self.tcp.pose.p,
                 cubeA_to_cubeB_pos=self.cubeB.pose.p - self.cubeA.pose.p,
                 # Add some binary information to facilitate training.
+                cubeA_vel=np.linalg.norm(self.cubeA.velocity),
+                cubeA_ang_vel=np.linalg.norm(self.cubeA.angular_velocity),
                 is_cubeA_grasped=float(self.agent.check_grasp(self.cubeA)),
                 is_cubeA_on_cubeB=float(self._check_cubeA_on_cubeB()),
                 is_cubeA_lift=float(self._check_cubeA_lift()),
@@ -421,20 +423,20 @@ class StackCubeEnv_v3(StackCubeEnv):
     def compute_dense_reward(self, info, **kwargs):
 
         if info["success"]:
-            reward = 8
+            reward = 6
         elif self._check_cubeA_on_cubeB():
-            reward = 7 + self.ungrasp_reward()
+            reward = 5 + self.ungrasp_reward()
         elif self._check_cubeA_above_cubeB():
-            reward = 6 + self.place_reward()
+            reward = 4 + self.place_reward()
         elif self._check_cubeA_lift():
-            reward = 5 + self.move_reward()
+            reward = 3 + self.move_reward()
         elif self.agent.check_grasp(self.cubeA):
-            reward = 4 + self.lift_reward()
+            reward = 2 + self.lift_reward()
         else:
-            reward = 2 + self.reaching_reward()
+            reward = self.reaching_reward()
 
         # reward = reward - 9.0
         if info["time_out"]:
-            reward -= 3
+            reward -= 1
 
         return reward
