@@ -391,7 +391,7 @@ class StackCubeEnv_v3(StackCubeEnv):
         cubeA_pos = self.cubeA.pose.p
         cubeB_pos = self.cubeB.pose.p
         cubeA_to_cubeB_dist = np.linalg.norm(cubeB_pos[:2] - cubeA_pos[:2])
-        return bool(cubeA_to_cubeB_dist < 0.005)
+        return bool(cubeA_to_cubeB_dist < 0.01)
     
     def reaching_reward(self):
         # reaching object reward
