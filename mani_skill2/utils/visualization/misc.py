@@ -70,12 +70,17 @@ def generate_motion_profile(
     ncols = len(motion_data_type) if len(motion_data_type) < 3 else 3
     plt.ioff()
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w', 'darkorange']
-    labels = ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6', 'joint7', 'finger_l', 'finger_r']
+    joint_labels = ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6', 'joint7', 'finger_l', 'finger_r']
+    ee_pos_labels = ['x', 'y', 'z']
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=(32, 18)) 
     timestamp = [(i + 1) * sim_step for i in range(motion_datas[next(iter(motion_datas))].shape[0])]
     for i, key in enumerate(motion_datas):
-        if key != 'indexs':
-            plot_subplot(axs[i // ncols, i % ncols], timestamp, motion_datas[key][:, :9], motion_data_type[i], colors, labels)
+        if key == 'indexs':
+            pass
+        elif key == 'ee_pos_datas':
+            plot_subplot(axs[i // ncols, i % ncols], timestamp, motion_datas[key][:, :3], motion_data_type[i], colors, ee_pos_labels)
+        else:
+            plot_subplot(axs[i // ncols, i % ncols], timestamp, motion_datas[key][:, :9], motion_data_type[i], colors, joint_labels)
     plt.tight_layout()
     plt.savefig(output_dir + "/" + motion_profile_name)
     if verbose:

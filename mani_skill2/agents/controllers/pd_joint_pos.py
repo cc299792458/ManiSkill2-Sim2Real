@@ -46,6 +46,10 @@ class PDJointPosController(BaseController):
     def set_drive_targets(self, targets):
         for i, joint in enumerate(self.joints):
             joint.set_drive_target(targets[i])
+    
+    def set_drive_velocity_targets(self, targets):
+        for i, joint in enumerate(self.joints):
+            joint.set_drive_velocity_target(targets[i])
 
     def set_action(self, action: np.ndarray):
         action = self._preprocess_action(action)

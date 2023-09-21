@@ -38,6 +38,7 @@ class BaseController:
             sim_freq = round(1.0 / sim_timestep)
         # Number of simulation steps per control step
         self._sim_steps = sim_freq // control_freq
+        self._sim_freq = sim_freq
 
         self._initialize_joints()
         self._initialize_action_space()

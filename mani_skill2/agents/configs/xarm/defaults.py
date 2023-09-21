@@ -9,11 +9,11 @@ class XArmDefaultConfig:
     def __init__(self, sim_params, ee_type='reduced_gripper') -> None:
         self.ee_type = ee_type
 
-        self.arm_stiffness = sim_params['stiffness']    # NOTE: increase from 1e3
-        self.arm_damping = sim_params['damping']  # NOTE: increase from 1e2
+        self.arm_stiffness = sim_params['arm_stiffness']    # NOTE: increase from 1e3
+        self.arm_damping = sim_params['arm_damping']  # NOTE: increase from 1e2
         self.arm_force_limit = sim_params['arm_force_limit']
-        self.gripper_stiffness = sim_params['stiffness']    # NOTE: increase from 1e3
-        self.gripper_damping = sim_params['damping']  # NOTE: increase from 1e2
+        self.gripper_stiffness = sim_params['ee_stiffness']    # NOTE: increase from 1e3
+        self.gripper_damping = sim_params['ee_damping']  # NOTE: increase from 1e2
         self.gripper_force_limit = sim_params['ee_force_limit']
 
         if self.ee_type == 'reduced_gripper':
@@ -130,6 +130,18 @@ class XArmDefaultConfig:
             ee_link=self.ee_link_name,
             use_target=self.arm_use_target,
         )
+        arm_constvel_ee_delta_pose = ConstVelEEPoseControllerConfig(
+            self.arm_joint_names,
+            -0.1,
+            0.1,
+            0.1,
+            self.arm_stiffness,
+            self.arm_damping,
+            self.arm_force_limit,
+            ee_link=self.ee_link_name,
+            use_target=self.arm_use_target,
+            interpolate=True,
+        )
 
         # -------------------------------------------------------------------------- #
         # Gripper
@@ -154,6 +166,9 @@ class XArmDefaultConfig:
             pd_ee_delta_pos=dict(arm=arm_pd_ee_delta_pos, gripper=gripper_pd_joint_pos),
             pd_ee_delta_pose=dict(
                 arm=arm_pd_ee_delta_pose, gripper=gripper_pd_joint_pos
+            ),
+            constvel_ee_delta_pose=dict(
+                arm=arm_constvel_ee_delta_pose, gripper=gripper_pd_joint_pos
             ),
         )
 

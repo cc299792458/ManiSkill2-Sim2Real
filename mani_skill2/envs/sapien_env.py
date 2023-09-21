@@ -700,12 +700,15 @@ class BaseEnv(gym.Env):
         self._reset_motion_profile_storage()
 
     def _after_simulation_step(self):
+        # Store motion data here.
         _motion_data = [self.agent.robot.get_qpos(), self.agent.robot.get_qvel(),\
                         self.agent.robot.get_qacc()]
         qf = self.agent.robot.get_qf()
         passive_qf = self.agent.robot.compute_passive_force(external=False)
         _motion_data.append(qf - passive_qf)
         _motion_data.append(qf)
+        ee_pos = self.agent.get_ee_pose().p
+        _motion_data.append(ee_pos)
 
         for i, key in enumerate(self._motion_data):
             self._motion_data[key].append(_motion_data[i])
