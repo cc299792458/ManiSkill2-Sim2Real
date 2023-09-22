@@ -20,7 +20,7 @@ class ConstVelEEPoseController(PDEEPoseController):
     config: "ConstVelEEPoseControllerConfig"
 
     def __init__(self, config: ControllerConfig, articulation, control_freq: int, sim_freq: int = None, 
-                 trans_vel=0.1, rot_vel=0.314, interpolate_step=20): 
+                 trans_vel=0.2, rot_vel=0.314, interpolate_step=5): 
         """
             This controller tries to track a constant linear motion trajectory.
             

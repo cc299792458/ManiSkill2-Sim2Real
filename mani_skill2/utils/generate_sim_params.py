@@ -22,7 +22,7 @@ SIM_PARAMS_NAME = [
     #-----Low level control-----#
     'time_out',
 ]
-SIM_PARAMS = [0.0, 1e5, 2e4, 5e3, 1e5, 2e4, 10, 200, 2.0, 2.0, 0.0, 1.0, 1.0, 0.0, 350]
+SIM_PARAMS = [0.0, 1e5, 5e3, 5e3, 1e5, 2e4, 10, 200, 2.0, 2.0, 0.0, 1.0, 1.0, 0.0, 350]
 
 def generate_sim_params(params_group=None):
     if params_group == None:
