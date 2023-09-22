@@ -20,7 +20,7 @@ class ConstVelEEPoseController(PDEEPoseController):
     config: "ConstVelEEPoseControllerConfig"
 
     def __init__(self, config: ControllerConfig, articulation, control_freq: int, sim_freq: int = None, 
-                 trans_vel=0.2, rot_vel=0.314, interpolate_step=5): 
+                 trans_vel=0.5, rot_vel=0.314, interpolate_step=1): 
         """
             This controller tries to track a constant linear motion trajectory.
             
@@ -100,6 +100,8 @@ class ConstVelEEPoseController(PDEEPoseController):
             if self._step % self.interpolate_step == 0:
                 sub_target = self._sub_target_pose[self._sub_target_step]
                 self.target_qpos = self.compute_ik(sub_target)
+                if self.target_qpos is None:
+                    self.target_qpos = self.qpos
                 self.set_drive_targets(self.target_qpos)
                 if self._sub_target_step < self._sub_target_num - 1:
                     self.target_qvel = self.compute_velocity_ik() 
