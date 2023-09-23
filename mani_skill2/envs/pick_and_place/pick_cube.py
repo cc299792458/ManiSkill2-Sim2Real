@@ -53,7 +53,7 @@ class PickCubeEnv(StationaryManipulationEnv):
             goal_pos = np.hstack([goal_xy, goal_z])
             # NOTE(chichu): set to a fixed point when evaluate real robot with simulation
             if self.fix_task_configuration:
-                goal_pos = np.array([0.05, 0.05, 0.2])
+                goal_pos = np.array([0.0, 0.0, 0.2])
             if np.linalg.norm(goal_pos - obj_pos) > self.min_goal_dist:
                 if verbose:
                     print(f"Found a valid goal at {i}-th trial")
@@ -217,7 +217,7 @@ class PickCubeEnv_v3(PickCubeEnv):
             return reward
         
         if info["time_out"]:
-            reward -= 1
+            reward -= 3
 
         tcp_to_obj_pos = self.obj.pose.p - self.tcp.pose.p
         tcp_to_obj_dist = np.linalg.norm(tcp_to_obj_pos)

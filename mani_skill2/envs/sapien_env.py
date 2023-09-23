@@ -649,11 +649,12 @@ class BaseEnv(gym.Env):
                 ee_p_dis = np.linalg.norm(ee_pose_dis.p, 2)
                 ee_q_dis = np.arccos(np.clip(np.power(np.sum(ee_pose_dis.q), 2) * 2 - 1, -1 + 1e-8, 1 - 1e-8))
                 if self.ee_type == 'reduced_gripper':
-                    if (qpos_dis[: -2] < self.qpos_threshold).all() and (qpos_dis[-2: ] < self.qpos_ee_threshold).all() \
+                    # if (qpos_dis[: -2] < self.qpos_threshold).all() and (qpos_dis[-2: ] < self.qpos_ee_threshold).all() \
+                    #             and (qvel < self.qvel_threshold).all() \
+                    #             and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
+                    if (qpos_dis[-2: ] < self.qpos_ee_threshold).all() \
                                 and (qvel < self.qvel_threshold).all() \
                                 and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
-                        # print("Sim step:" + str(sim_step) + "; ee_p_dis:" + str(ee_p_dis) + "; ee_q_dis:" + str(ee_q_dis))
-                        # print(qvel_max)
                         self._time_out = False
                         break
                 elif self.ee_type == 'full_gripper':

@@ -74,7 +74,7 @@ def parse_args():
     parser.add_argument(
         "--total-timesteps",
         type=int,
-        default=2_000_000,
+        default=4_000_000,
         help="Total timesteps for training",
     )
     parser.add_argument(
@@ -106,10 +106,10 @@ def main():
     reward_mode = "dense"
     low_level_control_mode = 'position'
     motion_data_type = ['qpos', 'qvel', 'qacc', '(qf - passive_qf)', 'qf', 'ee_pos']
-    render_mode = 'cameras' # 'human', 'cameras'
+    render_mode = 'human' # 'human', 'cameras'
     fix_task_configuration = False
-    render_by_sim_step = False
-    paused = False
+    render_by_sim_step = True
+    paused = True
     ee_type = 'reduced_gripper' #'reduced_gripper', 'full_gripper'
     if args.seed is not None:
         set_random_seed(args.seed)
