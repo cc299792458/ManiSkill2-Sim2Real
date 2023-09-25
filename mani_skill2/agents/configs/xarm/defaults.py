@@ -36,7 +36,7 @@ class XArmDefaultConfig:
                 "left_finger_joint",
                 "right_finger_joint",
             ]
-            self.ee_low, self.ee_high = -0.01, 0.0446430
+            self.ee_low, self.ee_high = 0.0, 0.0446430    # NOTE(chichu): self.ee_low original equals to -0.01, adjust to 0.0
             self.ee_cls_cfg = PDJointPosMimicControllerConfig
         elif self.ee_type == 'full_gripper':
             self.urdf_config = dict(
