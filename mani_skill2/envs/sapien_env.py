@@ -186,6 +186,7 @@ class BaseEnv(gym.Env):
         
         # End Effector type
         self.ee_type = ee_type
+        self.ee_move_independently = ee_move_independently
         # NOTE(jigu): Agent and camera configurations should not change after initialization.
         self._configure_agent(sim_params, self.ee_type)
         self._configure_cameras()
@@ -239,7 +240,7 @@ class BaseEnv(gym.Env):
         self.low_level_control_mode = low_level_control_mode
         # Add break conditions for position control
         self.time_out = sim_params['time_out']
-        self.qpos_threshold = 0.01
+        # self.qpos_threshold = 0.01
         if ee_type == 'reduced_gripper':
             self.qpos_ee_threshold = 0.02
         elif ee_type == 'full_gripper':
@@ -426,7 +427,7 @@ class BaseEnv(gym.Env):
         self._clear()
 
         self._setup_scene(sim_params=sim_params)
-        self._load_agent(sim_params=sim_params, ee_type=self.ee_type)
+        self._load_agent(sim_params=sim_params, ee_type=self.ee_type, ee_move_independently=self.ee_move_independently)
         self._load_actors()
         self._load_articulations()
         self._setup_cameras()
@@ -731,6 +732,7 @@ class BaseEnv(gym.Env):
         scene_config.contact_offset = 0.02
         scene_config.enable_pcm = False
         scene_config.solver_iterations = 25
+        scene_config.enable_tgs = True  # NOTE(chichu): recommended by fanbo.
         # NOTE(fanbo): solver_velocity_iterations=0 is undefined in PhysX
         scene_config.solver_velocity_iterations = 1
         if self._renderer_type == "client":

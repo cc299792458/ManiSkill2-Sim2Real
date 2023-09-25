@@ -56,6 +56,7 @@ class BaseAgent:
         config: AgentConfig = None,
         sim_params: dict = None,
         ee_type: str = None,
+        ee_move_independently: bool = None,
     ):
         self.scene = scene
         self._control_freq = control_freq
@@ -74,6 +75,9 @@ class BaseAgent:
             control_mode = self.supported_control_modes[0]
         # The control mode after reset for consistency
         self._default_control_mode = control_mode
+
+        # EE move independently or not
+        self.ee_move_independently = ee_move_independently
 
         self._load_articulation(ee_type)
         self._setup_controllers()
@@ -177,7 +181,15 @@ class BaseAgent:
                 }
             )
         else:
-            return self.controller.action_space
+            if self.ee_move_independently == False:
+                return self.controller.action_space
+            else:
+                # NOTE(chichu): extra dim is used to judge if ee moves or arm moves
+                original_action_space: spaces.Box = self.controller.action_space
+                low = original_action_space.low[0]
+                high = original_action_space.high[0]
+                dim = original_action_space.shape[0]
+                return spaces.Box(low=low, high=high, shape=(dim+1,))
 
     def reset(self, init_qpos=None):
         if init_qpos is not None:

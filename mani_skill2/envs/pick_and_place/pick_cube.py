@@ -32,13 +32,13 @@ class PickCubeEnv(StationaryManipulationEnv):
         self.goal_site = self._build_sphere_site(self.goal_thresh)
 
     def _initialize_actors(self):
-        # NOTE(chichu): can be fixed to a certain pose when evaluate on real robot with simulation.
         xy = self._episode_rng.uniform(-0.1, 0.1, [2])
         xyz = np.hstack([xy, self.cube_half_size[2]])
         q = [1, 0, 0, 0]
         if self.obj_init_rot_z:
             ori = self._episode_rng.uniform(0, 2 * np.pi)
             q = euler2quat(0, 0, ori)
+        # NOTE(chichu): fixed to a certain pose when evaluate on real robot with simulation.
         if self.fix_task_configuration:
             xyz = np.array([0.0, 0.0, self.cube_half_size[2]])
             q = [1, 0, 0, 0]
