@@ -111,6 +111,7 @@ def main():
     render_by_sim_step = False
     paused = False
     ee_type = 'reduced_gripper' #'reduced_gripper', 'full_gripper'
+    ee_move_independently = True
     if args.seed is not None:
         set_random_seed(args.seed)
 
@@ -135,6 +136,7 @@ def main():
                 render_by_sim_step = render_by_sim_step,
                 paused=paused,
                 ee_type=ee_type,
+                ee_move_independently=ee_move_independently,
             )
             # For training, we regard the task as a continuous task with infinite horizon.
             # you can use the ContinuousTaskWrapper here for that

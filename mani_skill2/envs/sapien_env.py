@@ -55,6 +55,15 @@ class BaseEnv(gym.Env):
         enable_shadow (bool): whether to enable shadow for lights. Defaults to False.
         camera_cfgs (dict): configurations of cameras. See notes for more details.
         render_camera_cfgs (dict): configurations of rendering cameras. Similar usage as @camera_cfgs.
+        low_level_control_mode (str): position control or impedence control here. 
+        motion_data_type (List[str]): determine which type of datas to be stored. 
+        sim_params (dict): a set of parameters, including physical properties, control parameters, timeout threshold and simulation frequency,
+                            refer to generate_sim_params.py 
+        fix_task_configuration (bool): if fix to a certain task configuration or not. 
+        render_by_sim_step (bool): if render by simulation step or not. 
+        paused (bool): if paused viewer before a episode starts. 
+        ee_type (str): reduced gripper or full gripper now. 
+        ee_move_independently (bool): if lock the arm when the end effector moves, which means arm and end effector won't move simultaneously. 
 
     Note:
         `camera_cfgs` is used to update environement-specific camera configurations.
@@ -81,7 +90,7 @@ class BaseEnv(gym.Env):
         obs_mode=None,
         reward_mode=None,
         control_mode=None,
-        # sim_freq: int = 200,    # TODO: what if we change sim_freq to 200?
+        # sim_freq: int = 200,
         control_freq: int = 20,
         renderer: str = "sapien",
         renderer_kwargs: dict = None,
@@ -98,6 +107,7 @@ class BaseEnv(gym.Env):
         render_by_sim_step: bool = False,
         paused: bool = False,
         ee_type: str = None,
+        ee_move_independently: bool = False,
     ):
         # Create SAPIEN engine
         self._engine = sapien.Engine()
@@ -139,26 +149,20 @@ class BaseEnv(gym.Env):
         self._engine.set_renderer(self._renderer)
         self._viewer = None
 
-        # Set simulation frequency, control frequency, and observation latency
+        # Set simulation frequency, observation latency
         self._sim_freq = sim_params['sim_freq']
-        self._control_freq = control_freq
         self._obs_latency = sim_params['obs_latency']
-        if self._sim_freq % control_freq != 0:
-            logger.warning(
-                f"sim_freq({self._sim_freq}) is not divisible by control_freq({control_freq}).",
-            )
-        self._sim_steps_per_control = self._sim_freq // control_freq
         self._sim_steps_latency = int(self._obs_latency // (1 / self._sim_freq)) + 1
-
+        # Observation history is used for simulating latency.
+        self._obs_history = Queue(maxsize=self._sim_steps_latency)
+        self._total_sim_step = 0   # Used for stack history observation, total simulation step for 1 episode.
+        
         # Observation mode
         if obs_mode is None:
             obs_mode = self.SUPPORTED_OBS_MODES[0]
         if obs_mode not in self.SUPPORTED_OBS_MODES:
             raise NotImplementedError("Unsupported obs mode: {}".format(obs_mode))
         self._obs_mode = obs_mode
-        # Observation history is used for simulating latency.
-        self._obs_history = Queue(maxsize=self._sim_steps_latency)
-        self._total_sim_step = 0   # Used for stack history observation, total simulation step for 1 episode.
 
         # Reward mode
         if reward_mode is None:
@@ -170,15 +174,20 @@ class BaseEnv(gym.Env):
         # TODO(jigu): support dict action space and check whether the name is good
         # Control mode
         self._control_mode = control_mode
-        # Low level control mode
+
+        # Low level control mode and control freqeuncy.
+        # NOTE(chichu): Normally, control frequncy only make sense for impedence control,
+        # but here control_freq is embedded into the whole control framework, so it isn't been delete for position control.
         self._config_low_level_control(low_level_control_mode, sim_params, ee_type)
-        # Motion Profile
-        self._motion_data_type = motion_data_type
+        self._control_freq = control_freq
+        if self._sim_freq % control_freq != 0:
+            logger.warning(f"sim_freq({self._sim_freq}) is not divisible by control_freq({control_freq}).",)
+        self._sim_steps_per_control = self._sim_freq // control_freq
+        
         # End Effector type
         self.ee_type = ee_type
-
         # NOTE(jigu): Agent and camera configurations should not change after initialization.
-        self._configure_agent(sim_params, ee_type)
+        self._configure_agent(sim_params, self.ee_type)
         self._configure_cameras()
         self._configure_render_cameras()
         # Override camera configurations
@@ -193,6 +202,9 @@ class BaseEnv(gym.Env):
         # Visual background
         self.bg_name = bg_name
         
+        # Motion Profile
+        self._motion_data_type = motion_data_type
+
         # Facilitate monitoring task evaluation
         self.fix_task_configuration = fix_task_configuration
         self.render_by_sim_step = render_by_sim_step
@@ -235,11 +247,6 @@ class BaseEnv(gym.Env):
         self.qvel_threshold = 0.5   # 0.01
         self.ee_p_threshold = 0.002
         self.ee_q_threshold = 0.2
-    
-    def _reset_motion_profile_storage(self):
-        self._motion_data = dict()
-        for data_type in self._motion_data_type:
-            self._motion_data[data_type + '_data'] = []
 
     def _configure_agent(self):
         # TODO(jigu): Support a dummy agent for simulation only
@@ -268,6 +275,11 @@ class BaseEnv(gym.Env):
     ) -> Union[CameraConfig, Sequence[CameraConfig], Dict[str, CameraConfig]]:
         """Register cameras for rendering."""
         return []
+    
+    def _reset_motion_profile_storage(self):
+        self._motion_data = dict()
+        for data_type in self._motion_data_type:
+            self._motion_data[data_type + '_data'] = []
 
     @property
     def sim_freq(self):
@@ -627,7 +639,7 @@ class BaseEnv(gym.Env):
         else:
             raise TypeError(type(action))
 
-        # NOTE(chichu): add position control here. The original one is impedance control.
+        # NOTE(chichu): add low level control mode choices here, supporting position control and impedence control.
         self._before_control_step()
         if self.low_level_control_mode == 'position':
             sim_step = 0
