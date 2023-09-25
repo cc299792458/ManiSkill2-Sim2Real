@@ -9,11 +9,11 @@ class XArmDefaultConfig:
     def __init__(self, sim_params, ee_type='reduced_gripper') -> None:
         self.ee_type = ee_type
 
-        self.arm_stiffness = sim_params['arm_stiffness']    # NOTE: increase from 1e3
-        self.arm_damping = sim_params['arm_damping']  # NOTE: increase from 1e2
+        self.arm_stiffness = sim_params['arm_stiffness']    # NOTE: original value is 1e3
+        self.arm_damping = sim_params['arm_damping']  # NOTE: original value is 1e2
         self.arm_force_limit = sim_params['arm_force_limit']
-        self.gripper_stiffness = sim_params['ee_stiffness']    # NOTE: increase from 1e3
-        self.gripper_damping = sim_params['ee_damping']  # NOTE: increase from 1e2
+        self.gripper_stiffness = sim_params['ee_stiffness']    # NOTE: same to arm
+        self.gripper_damping = sim_params['ee_damping']  # NOTE: same to arm
         self.gripper_force_limit = sim_params['ee_force_limit']
 
         if self.ee_type == 'reduced_gripper':
@@ -36,7 +36,7 @@ class XArmDefaultConfig:
                 "left_finger_joint",
                 "right_finger_joint",
             ]
-            self.ee_low, self.ee_high = 0.0, 0.0446430    # NOTE(chichu): self.ee_low original equals to -0.01, adjust to 0.0
+            self.ee_low, self.ee_high = -0.0005, 0.0446430    # NOTE(chichu): self.ee_low original equals to -0.01, adjust to 0.0
             self.ee_cls_cfg = PDJointPosMimicControllerConfig
         elif self.ee_type == 'full_gripper':
             self.urdf_config = dict(
