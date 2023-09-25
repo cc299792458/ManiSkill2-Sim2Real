@@ -635,15 +635,10 @@ class BaseEnv(gym.Env):
                 if sim_step >= self.time_out:
                     self._time_out = True
                     # print('time_out')
-                    # print('qpos:' + str((qpos_dis < self.qpos_threshold).all()) + 'qvel:' + str((qvel < self.qvel_threshold).all()))
-                    # print('ee_p_dis:' + str(ee_p_dis) + 'ee_q_dis:' + str(ee_q_dis))
-                    # print(qvel_max)
                     break
                 qpos, target_qpos = self.agent.robot.get_qpos(), self.agent.get_target_qpos()
                 qpos_dis = np.abs(target_qpos - qpos)
                 qvel = self.agent.robot.get_qvel()
-                # if np.max(np.abs(qvel) > qvel_max):
-                #     qvel_max = np.max(np.abs(qvel))
                 ee_pose, ee_target_pose = self.agent.get_ee_pose(), self.agent.get_target_ee_pose()
                 ee_pose_dis = ee_target_pose * ee_pose.inv()
                 ee_p_dis = np.linalg.norm(ee_pose_dis.p, 2)
@@ -661,16 +656,8 @@ class BaseEnv(gym.Env):
                     if (qpos_dis[: -6] < self.qpos_threshold).all() and (qpos_dis[-6: ] < self.qpos_ee_threshold).all() \
                                 and (qvel < self.qvel_threshold).all() \
                                 and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
-                        # print("Sim step:" + str(sim_step) + "; ee_p_dis:" + str(ee_p_dis) + "; ee_q_dis:" + str(ee_q_dis))
-                        # print(qvel_max)
                         self._time_out = False
                         break                
-                # print(sim_step)
-                # print((qpos_dis < self.qpos_threshold).all())
-                # print((qvel < self.qvel_threshold).all())
-                # print(ee_p_dis < self.ee_p_threshold)
-                # print(ee_q_dis < self.ee_q_threshold)
-                # while True:
                 self.agent.before_simulation_step()
                 self._scene.step()
                 if self.render_by_sim_step:
