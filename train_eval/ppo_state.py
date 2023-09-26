@@ -84,15 +84,27 @@ def parse_args():
         help="path for where logs, checkpoints, and videos are saved",
     )
     parser.add_argument(
+        "--pre-trained",
+        type=bool,
+        default=True,
+        help="if use pre-trained model or not",
+    )
+    parser.add_argument(
+        "--pre-trained-dir",
+        type=str,
+        default="ManiSkill2-Sim2Real/train_eval/pre_trained/"+env_id,
+        help="dir of pretrained model"
+    )
+    parser.add_argument(
         "--eval", action="store_false", help="whether to only evaluate policy"
     )
     parser.add_argument(
         "--model-path", type=str, help="path to sb3 model for evaluation"
     )
     parser.add_argument(
-        "--ee-type",
+        "--ee-type",            
         type=str,
-        default='reduced_gripper', 
+        default='reduced_gripper',  # 'reduced_gripper', 'full_gripper'
         help="end effector type"
     )
     parser.add_argument(
@@ -111,6 +123,7 @@ def main():
     num_envs = args.n_envs
     max_episode_steps = args.max_episode_steps
     log_dir = args.log_dir
+    pre_trained_dir = args.pre_trained_dir
     rollout_steps = 4000 # use to be 3200
 
     obs_mode = "state"
@@ -122,7 +135,7 @@ def main():
     fix_task_configuration = False
     render_by_sim_step = False
     paused = False
-    ee_type = args.ee_type #'reduced_gripper', 'full_gripper'
+    ee_type = args.ee_type 
     ee_move_independently = args.ee_move_independently
     if args.seed is not None:
         set_random_seed(args.seed)
@@ -214,6 +227,12 @@ def main():
     else:
         # define callbacks to periodically save our model and evaluate it to help monitor training
         # the below freq values will save every 20 rollouts
+        if args.pre_trained:
+            model_path = args.model_path
+            if model_path is None:
+                model_path = osp.join(pre_trained_dir, "pre_trained_model")
+            model = model.load(model_path)
+            model.set_env(env)
         eval_callback = EvalCallback(
             eval_env,
             best_model_save_path=log_dir,
