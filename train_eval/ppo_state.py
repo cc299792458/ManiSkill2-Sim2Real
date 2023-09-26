@@ -89,6 +89,18 @@ def parse_args():
     parser.add_argument(
         "--model-path", type=str, help="path to sb3 model for evaluation"
     )
+    parser.add_argument(
+        "--ee-type",
+        type=str,
+        default='reduced_gripper', 
+        help="end effector type"
+    )
+    parser.add_argument(
+        "--ee-move-independently",
+        type=bool,
+        default=False, 
+        help="if let arm and end-effector move separately"
+    )
     args = parser.parse_args()
     return args
 
@@ -110,8 +122,8 @@ def main():
     fix_task_configuration = False
     render_by_sim_step = False
     paused = False
-    ee_type = 'reduced_gripper' #'reduced_gripper', 'full_gripper'
-    ee_move_independently = True
+    ee_type = args.ee_type #'reduced_gripper', 'full_gripper'
+    ee_move_independently = args.ee_move_independently
     if args.seed is not None:
         set_random_seed(args.seed)
 
