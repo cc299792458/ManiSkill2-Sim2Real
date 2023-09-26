@@ -74,9 +74,10 @@ class PickCubeEnv(StationaryManipulationEnv):
                 tcp_to_obj_pos=self.obj.pose.p - self.tcp.pose.p,
                 obj_to_goal_pos=self.goal_pos - self.obj.pose.p,
                 # Add if the cube is grasped
-                reached=float(self.check_reached()),
                 obj_grasped=float(self.agent.check_grasp(self.obj)),
             )
+            if self.ee_move_independently:
+                obs.update(reached=float(self.check_reached()),)
         return obs
 
     def check_obj_placed(self):
@@ -234,7 +235,7 @@ class PickCubeEnv_v3(PickCubeEnv):
         
         is_grasped = self.agent.check_grasp(self.obj) # remove max_angle=30 yeilds much better performance
         if is_grasped:
-            reward += 2
+            reward += 1
             obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
             place_reward = 1 - np.tanh(5 * obj_to_goal_dist)
             reward += place_reward
