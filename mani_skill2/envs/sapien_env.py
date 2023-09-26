@@ -211,10 +211,12 @@ class BaseEnv(gym.Env):
         self.render_by_sim_step = render_by_sim_step
         self.paused = paused
 
+        self.sim_params = sim_params
+
         # NOTE(jigu): `seed` is deprecated in the latest gym.
         # Use a fixed seed to initialize to enhance determinism
         self.seed(2022)
-        obs = self.reset(reconfigure=True, sim_params=sim_params)
+        obs = self.reset(reconfigure=True)
         self.observation_space = convert_observation_to_space(obs)
         if self._obs_mode == "image":
             image_obs_space = self.observation_space.spaces["image"]
@@ -541,14 +543,14 @@ class BaseEnv(gym.Env):
     # -------------------------------------------------------------------------- #
     # Reset
     # -------------------------------------------------------------------------- #
-    def reset(self, seed=None, reconfigure=False, sim_params=None):
+    def reset(self, seed=None, reconfigure=False):
         self.set_episode_rng(seed)
         self._elapsed_steps = 0
         self._time_out = False
 
         if reconfigure:
             # Reconfigure the scene if assets change
-            self.reconfigure(sim_params)
+            self.reconfigure(self.sim_params)
         else:
             self._clear_sim_state()
 

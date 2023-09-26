@@ -28,8 +28,8 @@ class StationaryManipulationEnv(BaseEnv):
         self.robot_init_qpos_noise = robot_init_qpos_noise
         super().__init__(*args, **kwargs)
 
-    def _get_default_scene_config(self):
-        scene_config = super()._get_default_scene_config()
+    def _get_default_scene_config(self, sim_params):
+        scene_config = super()._get_default_scene_config(sim_params)
         scene_config.enable_pcm = True
         return scene_config
 
@@ -40,10 +40,11 @@ class StationaryManipulationEnv(BaseEnv):
         else:
             self._agent_cfg = agent_cls.get_default_config(sim_params, ee_type)
 
-    def _load_agent(self, sim_params, ee_type):
+    def _load_agent(self, sim_params, ee_type, ee_move_independently):
         agent_cls: Type[XArm7] = self.SUPPORTED_ROBOTS[self.robot_uid]
         self.agent = agent_cls(
-            self._scene, self._control_freq, self._control_mode, config=self._agent_cfg, sim_params=sim_params, ee_type=ee_type,
+            self._scene, self._control_freq, self._control_mode, config=self._agent_cfg, sim_params=sim_params, 
+            ee_type=ee_type, ee_move_independently=ee_move_independently,
         )
         self.tcp: sapien.Link = get_entity_by_name(
             self.agent.robot.get_links(), self.agent.config.ee_link_name
