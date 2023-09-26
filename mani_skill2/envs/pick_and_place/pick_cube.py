@@ -74,6 +74,7 @@ class PickCubeEnv(StationaryManipulationEnv):
                 tcp_to_obj_pos=self.obj.pose.p - self.tcp.pose.p,
                 obj_to_goal_pos=self.goal_pos - self.obj.pose.p,
                 # Add if the cube is grasped
+                reached=float(self.check_reached()),
                 obj_grasped=float(self.agent.check_grasp(self.obj)),
             )
         return obs
@@ -85,6 +86,13 @@ class PickCubeEnv(StationaryManipulationEnv):
         # Assume that the last two DoF is gripper
         qvel = self.agent.robot.get_qvel()[:-2]
         return np.max(np.abs(qvel)) <= thresh
+    
+    def check_reached(self):
+        tcp_to_obj_pos = self.obj.pose.p - self.tcp.pose.p
+        tcp_to_obj_dist = np.linalg.norm(tcp_to_obj_pos)
+        reached = True if tcp_to_obj_dist < 0.05 else False
+
+        return reached
 
     def evaluate(self, **kwargs):
         is_obj_placed = self.check_obj_placed()
@@ -223,21 +231,10 @@ class PickCubeEnv_v3(PickCubeEnv):
         tcp_to_obj_dist = np.linalg.norm(tcp_to_obj_pos)
         reaching_reward = 1 - np.tanh(5 * tcp_to_obj_dist)
         reward += reaching_reward
-        # reached = True if tcp_to_obj_dist < 0.05 else False
         
         is_grasped = self.agent.check_grasp(self.obj) # remove max_angle=30 yeilds much better performance
-        # if reached:
         if is_grasped:
-            reward += 1
-            # else:
-            #     if self.ee_type == 'reduced_gripper':
-            #         gripper_limit = self.agent.robot.get_qlimits()[-1, 1]
-            #         reward += 1 - self.agent.robot.get_qpos()[-1] / gripper_limit
-            #     elif self.ee_type == 'full_gripper':
-            #         gripper_width = self.agent.robot.get_qlimits()[-1, 1] + 0.01
-            #         reward += self.agent.robot.get_qpos()[-1] / gripper_width
-
-        if is_grasped:
+            reward += 2
             obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
             place_reward = 1 - np.tanh(5 * obj_to_goal_dist)
             reward += place_reward
@@ -250,6 +247,18 @@ class PickCubeEnv_v3(PickCubeEnv):
                     qvel = self.agent.robot.get_qvel()[:-6]
                 static_reward = 1 - np.tanh(5 * np.linalg.norm(qvel))
                 reward += static_reward
+
+        if self.ee_move_independently:
+            reached = self.check_reached()
+            if not reached:
+                if info['ee_move']:
+                    reward -= 1
+            if reached and (not is_grasped):
+                if info['ee_move']:
+                    reward += 1
+            if is_grasped:
+                if info['ee_move']:
+                    reward -= 1
 
         return reward
 

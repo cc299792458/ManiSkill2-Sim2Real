@@ -547,6 +547,8 @@ class BaseEnv(gym.Env):
         self.set_episode_rng(seed)
         self._elapsed_steps = 0
         self._time_out = False
+        if self.ee_move_independently:
+            self._ee_move = False
 
         if reconfigure:
             # Reconfigure the scene if assets change
@@ -641,7 +643,10 @@ class BaseEnv(gym.Env):
             self.agent.set_action(action["action"])
         else:
             raise TypeError(type(action))
-
+        
+        if self.ee_move_independently:
+            self._ee_move = bool(np.clip(action[-1], -1, 1) > 0)
+        
         # NOTE(chichu): add low level control mode choices here, supporting position control and impedence control.
         self._before_control_step()
         if self.low_level_control_mode == 'position':
@@ -696,6 +701,8 @@ class BaseEnv(gym.Env):
 
     def get_info(self, **kwargs):
         info = dict(elapsed_steps=self._elapsed_steps, time_out=self._time_out)
+        if self.ee_move_independently:
+            info.update(ee_move=self._ee_move)
         info.update(self.evaluate(**kwargs))
         return info
 
