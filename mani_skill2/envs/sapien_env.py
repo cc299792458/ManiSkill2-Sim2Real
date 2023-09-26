@@ -660,8 +660,7 @@ class BaseEnv(gym.Env):
                     # if (qpos_dis[: -2] < self.qpos_threshold).all() and (qpos_dis[-2: ] < self.qpos_ee_threshold).all() \
                     #             and (qvel < self.qvel_threshold).all() \
                     #             and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
-                    if (qpos_dis[-2: ] < self.qpos_ee_threshold).all() \
-                                and (qvel < self.qvel_threshold).all() \
+                    if (qpos_dis[-2: ] < self.qpos_ee_threshold).all() and (qvel < self.qvel_threshold).all() \
                                 and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
                         self._time_out = False
                         break

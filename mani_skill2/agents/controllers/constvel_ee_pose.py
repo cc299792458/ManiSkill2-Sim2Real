@@ -42,6 +42,8 @@ class ConstVelEEPoseController(PDEEPoseController):
         self.interpolate_step = interpolate_step
         self._initialize_velocity_ik()
 
+        self.activation = False
+
     def _initialize_velocity_ik(self):
         # NOTE(chichu): Hard-coded with xarm
         self.start_joint_name = self.articulation.get_joints()[1].get_name()
@@ -51,6 +53,7 @@ class ConstVelEEPoseController(PDEEPoseController):
         self.vel_ee_link = [link for link in self.articulation.get_links() if link.get_name() == self.vel_ee_link_name][0]
 
     def set_action(self, action: np.ndarray):
+        self.activation = True    # use with ee_move_independently. if set_action is skipped, then before_simulation_step should be skipped too.
         action = self._preprocess_action(action)
 
         self._step = 0
@@ -96,6 +99,8 @@ class ConstVelEEPoseController(PDEEPoseController):
         """
             Set target in the simulation loop, run certain simulation steps, set target once, depanding on self.interpolate_step.
         """
+        if self.activation == False:
+            return 
         if self.config.interpolate:
             if self._step % self.interpolate_step == 0:
                 sub_target = self._sub_target_pose[self._sub_target_step]
