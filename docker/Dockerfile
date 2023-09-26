@@ -43,6 +43,6 @@ COPY nvidia_layers.json /etc/vulkan/implicit_layer.d/nvidia_layers.json
 # RUN pip install mani-skill2==0.4.2 && pip cache purge
 RUN pip install setuptools==63.2.0
 RUN pip install "stable-baselines3[extra]<2.0.0"
-RUN git clone https://github.com/cc299792458/ManiSkill2-Sim2Real.git #add ee_move_dependently.
+RUN git clone https://github.com/cc299792458/ManiSkill2-Sim2Real.git # adjust obs and reward of pickcube
 RUN cd ManiSkill2-Sim2Real && pip install -e .
 RUN pip cache purge

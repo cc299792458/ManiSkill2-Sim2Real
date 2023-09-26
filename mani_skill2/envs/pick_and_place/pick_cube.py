@@ -90,7 +90,7 @@ class PickCubeEnv(StationaryManipulationEnv):
     def check_reached(self):
         tcp_to_obj_pos = self.obj.pose.p - self.tcp.pose.p
         tcp_to_obj_dist = np.linalg.norm(tcp_to_obj_pos)
-        reached = True if tcp_to_obj_dist < 0.05 else False
+        reached = True if tcp_to_obj_dist < 0.005 else False
 
         return reached
 
