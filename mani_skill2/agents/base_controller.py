@@ -217,12 +217,14 @@ class DictController(BaseController):
         for uid, controller in self.controllers.items():
             controller.set_action(action[uid])
 
-    def before_simulation_step(self):
+    def before_simulation_step(self, only_ee=False):
         if self.balance_passive_force:
             qf = self.articulation.compute_passive_force(external=False)
         else:
             qf = np.zeros(self.articulation.dof)
-        for controller in self.controllers.values():
+        for uid, controller in self.controllers.items():
+            if only_ee == True and uid == 'arm':
+                continue
             ret = controller.before_simulation_step()
             if ret is not None and "qf" in ret:
                 qf = qf + ret["qf"]

@@ -86,8 +86,8 @@ def parse_args():
     parser.add_argument(
         "--pre-trained",
         type=bool,
-        default=True,
-        help="if use pre-trained model or not",
+        default=False,
+        help="if using pre-trained model or not",
     )
     parser.add_argument(
         "--pre-trained-dir",
@@ -116,7 +116,7 @@ def parse_args():
     parser.add_argument(
         "--enable-tgs",
         type=bool,
-        default=True, 
+        default=False, 
         help="enable tgs or not"
     )
     parser.add_argument(
@@ -193,9 +193,8 @@ def main():
                 env = ContinuousTaskWrapper(env, max_episode_steps)
             if record_dir is not None:
                 env = SuccessInfoWrapper(env)
-                env = RecordEpisode(
-                    env, record_dir, info_on_video=True, render_mode=render_mode, motion_data_type=motion_data_type
-                )
+                env = RecordEpisode(env, record_dir, info_on_video=True, render_mode=render_mode, motion_data_type=motion_data_type)
+            
             return env
 
         return _init

@@ -197,6 +197,9 @@ class BaseAgent:
         self.robot.set_qvel(np.zeros(self.robot.dof))
         self.robot.set_qacc(np.zeros(self.robot.dof))
         self.robot.set_qf(np.zeros(self.robot.dof))
+        # Add set initial qpos drive here.
+        self.robot.set_drive_target(init_qpos)
+        self.robot.set_drive_velocity_target(np.zeros_like(init_qpos))
         self.set_control_mode(self._default_control_mode)
 
     def set_action(self, action):
@@ -211,8 +214,8 @@ class BaseAgent:
     def get_ee_pose(self):
         return self.controller.get_ee_pose()
 
-    def before_simulation_step(self):
-        self.controller.before_simulation_step()
+    def before_simulation_step(self, only_ee=False):
+        self.controller.before_simulation_step(only_ee=only_ee)
 
     # -------------------------------------------------------------------------- #
     # Observations

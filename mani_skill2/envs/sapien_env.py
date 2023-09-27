@@ -190,7 +190,7 @@ class BaseEnv(gym.Env):
         # End Effector type
         self.ee_type = ee_type
         self.ee_move_independently = ee_move_independently
-        self.ee_move_first = ee_move_first
+        self._config_ee_move_first(ee_move_first)
         # NOTE(jigu): Agent and camera configurations should not change after initialization.
         self._configure_agent(sim_params, self.ee_type)
         self._configure_cameras()
@@ -254,12 +254,19 @@ class BaseEnv(gym.Env):
         self.time_out = sim_params['time_out']
         # self.qpos_threshold = 0.01
         if ee_type == 'reduced_gripper':
-            self.qpos_ee_threshold = 0.02
+            self.qpos_ee_threshold = 0.01   # isn't too big nor too small.
         elif ee_type == 'full_gripper':
             self.qpos_ee_threshold = 0.5
         self.qvel_threshold = 0.5   # 0.01
         self.ee_p_threshold = 0.002
         self.ee_q_threshold = 0.2
+
+    def _config_ee_move_first(self, ee_move_first):
+        self.ee_move_first = ee_move_first
+        if self.ee_move_first == True:
+            self.ee_time_out = 15
+            self.ee_last_qpos = np.zeros([2])
+            self.ee_delta_threshold = 0.0005
 
     def _configure_agent(self):
         # TODO(jigu): Support a dummy agent for simulation only
@@ -655,14 +662,13 @@ class BaseEnv(gym.Env):
         else:
             raise TypeError(type(action))
         
-        if self.ee_move_independently:
-            self._ee_move = bool(np.clip(action[-1], -1, 1) > 0)
-        
         # NOTE(chichu): add low level control mode choices here, supporting position control and impedence control.
-        self._before_control_step()
+        self._before_control_step(action)
         if self.low_level_control_mode == 'position':
             sim_step = 0
             while True:
+                if self.ee_move_first == True:
+                    self.move_ee()
                 if sim_step >= self.time_out:
                     self._time_out = True
                     break
@@ -681,6 +687,25 @@ class BaseEnv(gym.Env):
                 self.agent.before_simulation_step()
                 self._scene.step()
                 self._after_simulation_step()
+
+    def move_ee(self):
+        ee_sim_step = 0
+        while True:
+            self.agent.before_simulation_step(only_ee=True)
+            self._scene.step()
+            if self.render_by_sim_step:
+                self.update_render()
+                self.render()
+            self._after_simulation_step()
+            ee_qpos = self.agent.robot.get_qpos()[-2:]
+            delta_qpos = np.abs(ee_qpos - self.ee_last_qpos)
+            if np.max(delta_qpos) < self.ee_delta_threshold:
+                return
+            if ee_sim_step > self.ee_time_out:
+                return
+            self.ee_last_qpos = ee_qpos
+            ee_sim_step += 1
+            
 
     def check_position_controller_condition(self):
         qpos, target_qpos = self.agent.robot.get_qpos(), self.agent.get_target_qpos()
@@ -719,8 +744,13 @@ class BaseEnv(gym.Env):
         info.update(self.evaluate(**kwargs))
         return info
 
-    def _before_control_step(self):
+    def _before_control_step(self, action):
         self._reset_motion_profile_storage()
+        if self.ee_move_first:
+            self.ee_last_qpos = self.agent.robot.get_qpos()[-2:]
+
+        if self.ee_move_independently:
+            self._ee_move = bool(np.clip(action[-1], -1, 1) > 0)
 
     def _after_simulation_step(self):
         # Store motion data here.
