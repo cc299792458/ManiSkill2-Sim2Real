@@ -96,7 +96,7 @@ def parse_args():
         help="dir of pretrained model"
     )
     parser.add_argument(
-        "--eval", action="store_false", help="whether to only evaluate policy"
+        "--train", action="store_true", help="whether to train the policy"
     )
     parser.add_argument(
         "--model-path", type=str, help="path to sb3 model for evaluation"
@@ -111,7 +111,25 @@ def parse_args():
         "--ee-move-independently",
         type=bool,
         default=False, 
-        help="if let arm and end-effector move separately"
+        help="one action can only move arm or ee in one time."
+    )
+    parser.add_argument(
+        "--enable-tgs",
+        type=bool,
+        default=True, 
+        help="enable tgs or not"
+    )
+    parser.add_argument(
+        "--obs-noise",
+        type=float,
+        default=0.0,
+        help="observation noise"
+    )
+    parser.add_argument(
+        "--ee-move-first",
+        type=bool,
+        default=True,
+        help="in one action, finish moving ee first, then move the arm." 
     )
     args = parser.parse_args()
     return args
@@ -137,6 +155,9 @@ def main():
     paused = False
     ee_type = args.ee_type 
     ee_move_independently = args.ee_move_independently
+    enable_tgs = args.enable_tgs
+    obs_noise = args.obs_noise
+    ee_move_first =  args.ee_move_first
     if args.seed is not None:
         set_random_seed(args.seed)
 
@@ -162,6 +183,9 @@ def main():
                 paused=paused,
                 ee_type=ee_type,
                 ee_move_independently=ee_move_independently,
+                enable_tgs=enable_tgs,
+                obs_noise=obs_noise,
+                ee_move_first=ee_move_first,
             )
             # For training, we regard the task as a continuous task with infinite horizon.
             # you can use the ContinuousTaskWrapper here for that
@@ -177,7 +201,7 @@ def main():
         return _init
 
     # create eval environment
-    if args.eval:
+    if not args.train:
         record_dir = osp.join(log_dir, "videos/eval")
     else:
         record_dir = osp.join(log_dir, "videos")
@@ -188,7 +212,7 @@ def main():
     eval_env.seed(args.seed)
     eval_env.reset()
 
-    if args.eval:
+    if not args.train:
         env = eval_env
     else:
         # Create vectorized environments for training
@@ -218,7 +242,7 @@ def main():
         target_kl=0.1,
     )
 
-    if args.eval:
+    if not args.train:
         model_path = args.model_path
         if model_path is None:
             model_path = osp.join(log_dir, "best_model")

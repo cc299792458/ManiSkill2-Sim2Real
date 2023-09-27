@@ -68,17 +68,29 @@ class PickCubeEnv(StationaryManipulationEnv):
             goal_pos=self.goal_pos,
         )
         if self._obs_mode in ["state", "state_dict"]:
+            obj_pose = vectorize_pose(self.obj.pose)
+            tcp_to_obj_pos = self.obj.pose.p - self.tcp.pose.p
+            obj_to_goal_pos = self.goal_pos - self.obj.pose.p
+            if self.obs_noise != 0.0:
+                xy_noise = self.generate_noise_for_pos(size=2)
+                obj_pose[0:2] += xy_noise
+                tcp_to_obj_pos[0:2] += xy_noise
+                obj_to_goal_pos[0:2] -= xy_noise
             obs.update(
                 tcp_to_goal_pos=self.goal_pos - self.tcp.pose.p,
-                obj_pose=vectorize_pose(self.obj.pose),
-                tcp_to_obj_pos=self.obj.pose.p - self.tcp.pose.p,
-                obj_to_goal_pos=self.goal_pos - self.obj.pose.p,
+                obj_pose=obj_pose,
+                tcp_to_obj_pos=tcp_to_obj_pos,
+                obj_to_goal_pos=obj_to_goal_pos,
                 # Add if the cube is grasped
                 obj_grasped=float(self.agent.check_grasp(self.obj)),
             )
             if self.ee_move_independently:
                 obs.update(reached=float(self.check_reached()),)
         return obs
+
+    def generate_noise_for_pos(self, size):
+        noise = np.random.uniform(-self.obs_noise, self.obs_noise, size=size)
+        return noise
 
     def check_obj_placed(self):
         return np.linalg.norm(self.goal_pos - self.obj.pose.p) <= self.goal_thresh

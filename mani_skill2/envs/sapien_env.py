@@ -108,6 +108,9 @@ class BaseEnv(gym.Env):
         paused: bool = False,
         ee_type: str = None,
         ee_move_independently: bool = False,
+        enable_tgs: bool = False,
+        obs_noise: float = 0.0,
+        ee_move_first: bool = False
     ):
         # Create SAPIEN engine
         self._engine = sapien.Engine()
@@ -187,6 +190,7 @@ class BaseEnv(gym.Env):
         # End Effector type
         self.ee_type = ee_type
         self.ee_move_independently = ee_move_independently
+        self.ee_move_first = ee_move_first
         # NOTE(jigu): Agent and camera configurations should not change after initialization.
         self._configure_agent(sim_params, self.ee_type)
         self._configure_cameras()
@@ -202,6 +206,12 @@ class BaseEnv(gym.Env):
 
         # Visual background
         self.bg_name = bg_name
+
+        # Enable tgs or not
+        self.enable_tgs = enable_tgs
+
+        # Observation noise
+        self.obs_noise = obs_noise
         
         # Motion Profile
         self._motion_data_type = motion_data_type
@@ -322,7 +332,8 @@ class BaseEnv(gym.Env):
     def stack_obs(self):
         if self._obs_history.full():
             self._obs_history.get()
-        self._obs_history.put(self.get_obs())
+        obs = self.get_obs()
+        self._obs_history.put(obs)
 
     def fetch_obs(self):
         return self._obs_history.queue[0]
@@ -428,7 +439,7 @@ class BaseEnv(gym.Env):
         """
         self._clear()
 
-        self._setup_scene(sim_params=sim_params)
+        self._setup_scene(sim_params=sim_params, enable_tgs=self.enable_tgs)
         self._load_agent(sim_params=sim_params, ee_type=self.ee_type, ee_move_independently=self.ee_move_independently)
         self._load_actors()
         self._load_articulations()
@@ -654,29 +665,10 @@ class BaseEnv(gym.Env):
             while True:
                 if sim_step >= self.time_out:
                     self._time_out = True
-                    # print('time_out')
                     break
-                qpos, target_qpos = self.agent.robot.get_qpos(), self.agent.get_target_qpos()
-                qpos_dis = np.abs(target_qpos - qpos)
-                qvel = self.agent.robot.get_qvel()
-                ee_pose, ee_target_pose = self.agent.get_ee_pose(), self.agent.get_target_ee_pose()
-                ee_pose_dis = ee_target_pose * ee_pose.inv()
-                ee_p_dis = np.linalg.norm(ee_pose_dis.p, 2)
-                ee_q_dis = np.arccos(np.clip(np.power(np.sum(ee_pose_dis.q), 2) * 2 - 1, -1 + 1e-8, 1 - 1e-8))
-                if self.ee_type == 'reduced_gripper':
-                    # if (qpos_dis[: -2] < self.qpos_threshold).all() and (qpos_dis[-2: ] < self.qpos_ee_threshold).all() \
-                    #             and (qvel < self.qvel_threshold).all() \
-                    #             and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
-                    if (qpos_dis[-2: ] < self.qpos_ee_threshold).all() and (qvel < self.qvel_threshold).all() \
-                                and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
-                        self._time_out = False
-                        break
-                elif self.ee_type == 'full_gripper':
-                    if (qpos_dis[: -6] < self.qpos_threshold).all() and (qpos_dis[-6: ] < self.qpos_ee_threshold).all() \
-                                and (qvel < self.qvel_threshold).all() \
-                                and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
-                        self._time_out = False
-                        break                
+                if self.check_position_controller_condition():
+                    self._time_out = False
+                    break
                 self.agent.before_simulation_step()
                 self._scene.step()
                 if self.render_by_sim_step:
@@ -684,12 +676,33 @@ class BaseEnv(gym.Env):
                     self.render()
                 self._after_simulation_step()
                 sim_step += 1
-                
         elif self.low_level_control_mode == 'impedance':
             for _ in range(self._sim_steps_per_control):
                 self.agent.before_simulation_step()
                 self._scene.step()
                 self._after_simulation_step()
+
+    def check_position_controller_condition(self):
+        qpos, target_qpos = self.agent.robot.get_qpos(), self.agent.get_target_qpos()
+        qpos_dis = np.abs(target_qpos - qpos)
+        qvel = self.agent.robot.get_qvel()
+        ee_pose, ee_target_pose = self.agent.get_ee_pose(), self.agent.get_target_ee_pose()
+        ee_pose_dis = ee_target_pose * ee_pose.inv()
+        ee_p_dis = np.linalg.norm(ee_pose_dis.p, 2)
+        ee_q_dis = np.arccos(np.clip(np.power(np.sum(ee_pose_dis.q), 2) * 2 - 1, -1 + 1e-8, 1 - 1e-8))
+        if self.ee_type == 'reduced_gripper':
+            # if (qpos_dis[: -2] < self.qpos_threshold).all() and (qpos_dis[-2: ] < self.qpos_ee_threshold).all() \
+            #             and (qvel < self.qvel_threshold).all() \
+            #             and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
+            if (qpos_dis[-2: ] < self.qpos_ee_threshold).all() and (qvel < self.qvel_threshold).all() \
+                        and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
+                return True
+        elif self.ee_type == 'full_gripper':
+            if (qpos_dis[: -6] < self.qpos_threshold).all() and (qpos_dis[-6: ] < self.qpos_ee_threshold).all() \
+                        and (qvel < self.qvel_threshold).all() \
+                        and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
+                return True
+        return False
 
     def evaluate(self, **kwargs) -> dict:
         """Evaluate whether the task succeeds."""
@@ -732,7 +745,7 @@ class BaseEnv(gym.Env):
     # -------------------------------------------------------------------------- #
     # Simulation and other gym interfaces
     # -------------------------------------------------------------------------- #
-    def _get_default_scene_config(self, sim_params):
+    def _get_default_scene_config(self, sim_params, enable_tgs):
         scene_config = sapien.SceneConfig()
         scene_config.default_dynamic_friction = sim_params['obj_fri_dynamic']
         scene_config.default_static_friction = sim_params['obj_fri_static']
@@ -740,19 +753,19 @@ class BaseEnv(gym.Env):
         scene_config.contact_offset = 0.02
         scene_config.enable_pcm = False
         scene_config.solver_iterations = 25
-        scene_config.enable_tgs = True  # NOTE(chichu): recommended by fanbo.
+        scene_config.enable_tgs = enable_tgs  # NOTE(chichu): recommended by fanbo.
         # NOTE(fanbo): solver_velocity_iterations=0 is undefined in PhysX
         scene_config.solver_velocity_iterations = 1
         if self._renderer_type == "client":
             scene_config.disable_collision_visual = True
         return scene_config
 
-    def _setup_scene(self, scene_config: Optional[sapien.SceneConfig] = None, sim_params = None):
+    def _setup_scene(self, scene_config: Optional[sapien.SceneConfig] = None, sim_params = None, enable_tgs = None,):
         """Setup the simulation scene instance.
         The function should be called in reset().
         """
         if scene_config is None:
-            scene_config = self._get_default_scene_config(sim_params)
+            scene_config = self._get_default_scene_config(sim_params, enable_tgs)
         self._scene = self._engine.create_scene(scene_config)
         self._scene.set_timestep(1.0 / self._sim_freq)
 
