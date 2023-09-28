@@ -206,7 +206,7 @@ class PickCubeEnv_v2(PickCubeEnv):
             reward += 5
             return reward
         
-        if info["time_out"]:
+        if info["time_out"] or info["ee_constraint_break"]:
             reward -= 1
 
         tcp_to_obj_pos = self.obj.pose.p - self.tcp.pose.p

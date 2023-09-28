@@ -261,6 +261,8 @@ class BaseEnv(gym.Env):
         self.ee_p_threshold = 0.002
         self.ee_q_threshold = 0.2
 
+        self.ee_break_threshold = 0.004
+
     def _config_ee_move_first(self, ee_move_first):
         self.ee_move_first = ee_move_first
         if self.ee_move_first == True:
@@ -565,6 +567,7 @@ class BaseEnv(gym.Env):
         self.set_episode_rng(seed)
         self._elapsed_steps = 0
         self._time_out = False
+        self._ee_constraint_break = False
         if self.ee_move_independently:
             self._ee_move = False
 
@@ -715,6 +718,8 @@ class BaseEnv(gym.Env):
         ee_pose_dis = ee_target_pose * ee_pose.inv()
         ee_p_dis = np.linalg.norm(ee_pose_dis.p, 2)
         ee_q_dis = np.arccos(np.clip(np.power(np.sum(ee_pose_dis.q), 2) * 2 - 1, -1 + 1e-8, 1 - 1e-8))
+        if np.abs(qpos[-2] - qpos[-1]) > self.ee_break_threshold:
+            self._ee_constraint_break = True
         if self.ee_type == 'reduced_gripper':
             # if (qpos_dis[: -2] < self.qpos_threshold).all() and (qpos_dis[-2: ] < self.qpos_ee_threshold).all() \
             #             and (qvel < self.qvel_threshold).all() \
@@ -738,7 +743,7 @@ class BaseEnv(gym.Env):
         return bool(info["success"])
 
     def get_info(self, **kwargs):
-        info = dict(elapsed_steps=self._elapsed_steps, time_out=self._time_out)
+        info = dict(elapsed_steps=self._elapsed_steps, time_out=self._time_out, ee_constraint_break=self._ee_constraint_break)
         if self.ee_move_independently:
             info.update(ee_move=self._ee_move)
         info.update(self.evaluate(**kwargs))
@@ -746,9 +751,9 @@ class BaseEnv(gym.Env):
 
     def _before_control_step(self, action):
         self._reset_motion_profile_storage()
+        self._ee_constraint_break = False
         if self.ee_move_first:
             self.ee_last_qpos = self.agent.robot.get_qpos()[-2:]
-
         if self.ee_move_independently:
             self._ee_move = bool(np.clip(action[-1], -1, 1) > 0)
 
