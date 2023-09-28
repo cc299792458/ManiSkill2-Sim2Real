@@ -19,6 +19,7 @@ class PickCubeEnv(StationaryManipulationEnv):
     def __init__(self, *args, obj_init_rot_z=True, **kwargs):
         self.obj_init_rot_z = obj_init_rot_z
         self.cube_half_size = np.array([0.019] * 3, np.float32)  # (chichu) change the half size of cube from 0.02 to 0.049/2 to align the real cube.
+        self.last_obj_to_goal_dist = 0
         # TODO(chichu): need to be removed
         # import sys
         # sys.path.append('/home/chichu/Documents/Sapien/ManiSkill2-Sim2Real')
@@ -48,12 +49,12 @@ class PickCubeEnv(StationaryManipulationEnv):
         obj_pos = self.obj.pose.p
         # Sample a goal position far enough from the object
         for i in range(max_trials):
-            goal_xy = self._episode_rng.uniform(-0.1, 0.1, [2])
-            goal_z = self._episode_rng.uniform(0, 0.5) + obj_pos[2]
+            goal_xy = self._episode_rng.uniform(-0.05, 0.05, [2])
+            goal_z = self._episode_rng.uniform(0, 0.2) + obj_pos[2]
             goal_pos = np.hstack([goal_xy, goal_z])
             # NOTE(chichu): set to a fixed point when evaluate real robot with simulation
             if self.fix_task_configuration:
-                goal_pos = np.array([0.0, 0.0, 0.2])
+                goal_pos = np.array([0.0, 0.0, 0.1]) + obj_pos[2]
             if np.linalg.norm(goal_pos - obj_pos) > self.min_goal_dist:
                 if verbose:
                     print(f"Found a valid goal at {i}-th trial")
@@ -131,10 +132,13 @@ class PickCubeEnv(StationaryManipulationEnv):
         is_grasped = self.agent.check_grasp(self.obj, max_angle=30)
         reward += 1 if is_grasped else 0.0
 
+        obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
         if is_grasped:
-            obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
-            place_reward = 1 - np.tanh(5 * obj_to_goal_dist)
-            reward += place_reward
+            if obj_to_goal_dist < self.last_obj_to_goal_dist:
+                place_reward = 1 - np.tanh(5 * obj_to_goal_dist)
+                reward += place_reward
+        self.last_obj_to_goal_dist = obj_to_goal_dist
+        
 
         return reward
 

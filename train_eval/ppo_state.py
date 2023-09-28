@@ -131,6 +131,12 @@ def parse_args():
         default=True,
         help="in one action, finish moving ee first, then move the arm." 
     )
+    parser.add_argument(
+        "--gamma",
+        type=float,
+        default=0.8,
+        help="gamma for PPO." 
+    )
     args = parser.parse_args()
     return args
 
@@ -234,7 +240,7 @@ def main():
         verbose=1,
         n_steps=rollout_steps // num_envs,
         batch_size=400, # 400
-        gamma=0.8,     # default = 0.85
+        gamma=args.gamma,     # default = 0.85
         gae_lambda=0.9,
         n_epochs=20,
         tensorboard_log=log_dir,
