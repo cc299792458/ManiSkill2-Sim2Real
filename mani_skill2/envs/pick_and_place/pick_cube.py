@@ -245,7 +245,7 @@ class PickCubeEnv_v3(PickCubeEnv):
             reward -= 3
 
         if info["ee_constraint_break"]:
-            reward -= 15
+            reward -= 8
 
         tcp_to_obj_pos = self.obj.pose.p - self.tcp.pose.p
         tcp_to_obj_dist = np.linalg.norm(tcp_to_obj_pos)
