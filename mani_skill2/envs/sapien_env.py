@@ -665,10 +665,10 @@ class BaseEnv(gym.Env):
         # NOTE(chichu): add low level control mode choices here, supporting position control and impedence control.
         self._before_control_step(action)
         if self.low_level_control_mode == 'position':
+            if self.ee_move_first == True:
+                self.move_ee()
             sim_step = 0
             while True:
-                if self.ee_move_first == True:
-                    self.move_ee()
                 if sim_step >= self.time_out:
                     self._time_out = True
                     break
