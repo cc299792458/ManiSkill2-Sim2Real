@@ -110,7 +110,7 @@ class BaseEnv(gym.Env):
         ee_move_independently: bool = False,
         enable_tgs: bool = False,
         obs_noise: float = 0.0,
-        ee_move_first: bool = False
+        ee_move_first: bool = False,
     ):
         # Create SAPIEN engine
         self._engine = sapien.Engine()
@@ -186,11 +186,12 @@ class BaseEnv(gym.Env):
         if self._sim_freq % control_freq != 0:
             logger.warning(f"sim_freq({self._sim_freq}) is not divisible by control_freq({control_freq}).",)
         self._sim_steps_per_control = self._sim_freq // control_freq
-        
+
         # End Effector type
         self.ee_type = ee_type
         self.ee_move_independently = ee_move_independently
         self._config_ee_move_first(ee_move_first)
+
         # NOTE(jigu): Agent and camera configurations should not change after initialization.
         self._configure_agent(sim_params, self.ee_type)
         self._configure_cameras()

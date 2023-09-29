@@ -137,6 +137,12 @@ def parse_args():
         default=0.8,
         help="gamma for PPO." 
     )
+    parser.add_argument(
+        "--size-range",
+        type=float,
+        default=0.005,
+        help="range for object's size." 
+    )
     args = parser.parse_args()
     return args
 
@@ -164,6 +170,7 @@ def main():
     enable_tgs = args.enable_tgs
     obs_noise = args.obs_noise
     ee_move_first =  args.ee_move_first
+    size_range = args.size_range
     if args.seed is not None:
         set_random_seed(args.seed)
 
@@ -192,6 +199,7 @@ def main():
                 enable_tgs=enable_tgs,
                 obs_noise=obs_noise,
                 ee_move_first=ee_move_first,
+                size_range=size_range,
             )
             # For training, we regard the task as a continuous task with infinite horizon.
             # you can use the ContinuousTaskWrapper here for that

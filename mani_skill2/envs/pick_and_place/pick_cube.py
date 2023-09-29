@@ -16,9 +16,12 @@ class PickCubeEnv(StationaryManipulationEnv):
     goal_thresh = 0.025
     min_goal_dist = 0.05
 
-    def __init__(self, *args, obj_init_rot_z=True, **kwargs):
+    def __init__(self, *args, obj_init_rot_z=True, size_range=0.0, **kwargs):
         self.obj_init_rot_z = obj_init_rot_z
-        self.cube_half_size = np.array([0.025] * 3, np.float32)  # (chichu) change the half size of cube from 0.02 to 0.049/2 to align the real cube.
+        self.size_range = size_range
+        self.org_half_cube_size = 0.02
+        half_cube_size = self.org_half_cube_size
+        self.cube_half_size = np.array([half_cube_size] * 3, np.float32)  # (chichu) change the half size of cube from 0.02 to 0.049/2 to align the real cube.
         self.last_obj_to_goal_dist = 0
         # TODO(chichu): need to be removed
         # import sys
@@ -33,6 +36,12 @@ class PickCubeEnv(StationaryManipulationEnv):
         self.goal_site = self._build_sphere_site(self.goal_thresh)
 
     def _initialize_actors(self):
+        # if self.size_range != 0.0:
+        #     self._scene.remove_actor(self.obj)
+        #     random_size = self._episode_rng.uniform(-self.size_range, self.size_range)
+        #     half_cube_size = self.org_half_cube_size + random_size
+        #     self.cube_half_size = np.array([half_cube_size] * 3, np.float32)
+        #     self.obj = self._build_cube(self.cube_half_size)
         xy = self._episode_rng.uniform(-0.1, 0.1, [2])
         xyz = np.hstack([xy, self.cube_half_size[2]])
         q = [1, 0, 0, 0]
