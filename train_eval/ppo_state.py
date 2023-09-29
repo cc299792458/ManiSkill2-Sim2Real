@@ -140,7 +140,7 @@ def parse_args():
     parser.add_argument(
         "--size-range",
         type=float,
-        default=0.005,
+        default=0.0,
         help="range for object's size." 
     )
     args = parser.parse_args()
