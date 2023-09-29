@@ -19,7 +19,7 @@ class PickCubeEnv(StationaryManipulationEnv):
     def __init__(self, *args, obj_init_rot_z=True, size_range=0.0, **kwargs):
         self.obj_init_rot_z = obj_init_rot_z
         self.size_range = size_range
-        self.org_half_cube_size = 0.0225
+        self.org_half_cube_size = 0.02
         half_cube_size = self.org_half_cube_size
         self.cube_half_size = np.array([half_cube_size] * 3, np.float32)  # (chichu) change the half size of cube from 0.02 to 0.049/2 to align the real cube.
         self.last_obj_to_goal_dist = 0
@@ -32,16 +32,21 @@ class PickCubeEnv(StationaryManipulationEnv):
 
     def _load_actors(self):
         self._add_ground(render=self.bg_name is None)
+        self.cube_half_size[2] = self.org_half_cube_size
         self.obj = self._build_cube(self.cube_half_size)
         self.goal_site = self._build_sphere_site(self.goal_thresh)
 
     def _initialize_actors(self):
-        # if self.size_range != 0.0:
-        #     self._scene.remove_actor(self.obj)
-        #     random_size = self._episode_rng.uniform(-self.size_range, self.size_range)
-        #     half_cube_size = self.org_half_cube_size + random_size
-        #     self.cube_half_size = np.array([half_cube_size] * 3, np.float32)
-        #     self.obj = self._build_cube(self.cube_half_size)
+        if self.size_range != 0.0:
+            self._actors.remove(self.obj)
+            self._scene.remove_actor(self.obj)
+            random_size = self._episode_rng.uniform(-self.size_range, 2 * self.size_range)
+            half_cube_size = self.org_half_cube_size + random_size
+            self.cube_half_size = np.array([half_cube_size] * 3, np.float32)
+            self.cube_half_size[2] = self.org_half_cube_size
+            self.obj = self._build_cube(self.cube_half_size)
+            self._actors.append(self.obj)
+
         xy = self._episode_rng.uniform(-0.1, 0.1, [2])
         xyz = np.hstack([xy, self.cube_half_size[2]])
         q = [1, 0, 0, 0]

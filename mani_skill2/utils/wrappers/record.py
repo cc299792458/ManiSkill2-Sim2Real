@@ -95,7 +95,7 @@ class RecordEpisode(gym.Wrapper):
         self,
         env,
         output_dir,
-        save_trajectory=True,
+        save_trajectory=False,
         trajectory_name=None,
         save_video=True,
         info_on_video=False,
