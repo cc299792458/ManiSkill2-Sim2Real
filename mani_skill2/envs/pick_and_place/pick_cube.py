@@ -18,7 +18,7 @@ class PickCubeEnv(StationaryManipulationEnv):
 
     def __init__(self, *args, obj_init_rot_z=True, **kwargs):
         self.obj_init_rot_z = obj_init_rot_z
-        self.cube_half_size = np.array([0.019] * 3, np.float32)  # (chichu) change the half size of cube from 0.02 to 0.049/2 to align the real cube.
+        self.cube_half_size = np.array([0.025] * 3, np.float32)  # (chichu) change the half size of cube from 0.02 to 0.049/2 to align the real cube.
         self.last_obj_to_goal_dist = 0
         # TODO(chichu): need to be removed
         # import sys
