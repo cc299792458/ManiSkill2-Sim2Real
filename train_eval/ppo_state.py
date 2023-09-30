@@ -16,119 +16,32 @@ from mani_skill2.utils.generate_sim_params import generate_sim_params
 
                     
 def parse_args():
-    env_id = "StackCube-v3"
-    parser = argparse.ArgumentParser(
-        description="Use Stable-Baselines-3 PPO to train ManiSkill2 tasks"
-    )
+    env_id = "PickCube-v3"
+    parser = argparse.ArgumentParser(description="Use Stable-Baselines-3 PPO to train ManiSkill2 tasks")
+    #####----- PPO Args -----#####
     parser.add_argument("-e", "--env-id", type=str, default=env_id)
-    parser.add_argument(
-        "-n",
-        "--n-envs",
-        type=int,
-        default=16,
-        help="number of parallel envs to run. Note that increasing this does not increase rollout size",
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        help="Random seed to initialize training with",
-    )
-    parser.add_argument(
-        "--max-episode-steps",
-        type=int,
-        default=100,    # 1OO steps is 5 seconds in total
-        help="Max steps per episode before truncating them",
-    )
-    parser.add_argument(
-        "--total-timesteps",
-        type=int,
-        default=8_000_000,
-        help="Total timesteps for training",
-    )
-    parser.add_argument(
-        "--rollout_steps",
-        type=float,
-        default=4000,
-        help="rollout steps for PPO." 
-    )
-    parser.add_argument(
-        "--batch_size",
-        type=float,
-        default=400,
-        help="batch size for PPO." 
-    )
-    parser.add_argument(
-        "--gamma",
-        type=float,
-        default=0.8,
-        help="gamma for PPO." 
-    )
-    parser.add_argument(
-        "--n_epochs",
-        type=float,
-        default=20,
-        help="n epochs for PPO." 
-    )
-    parser.add_argument(
-        "--log-dir",
-        type=str,
-        default="logs/PPO/",
-        help="path for where logs, checkpoints, and videos are saved",
-    )
-    parser.add_argument(
-        "--pre-trained",
-        type=bool,
-        default=False,
-        help="if using pre-trained model or not",
-    )
-    parser.add_argument(
-        "--pre-trained-dir",
-        type=str,
-        default="ManiSkill2-Sim2Real/train_eval/pre_trained/",
-        help="dir of pretrained model"
-    )
-    parser.add_argument(
-        "--train", action="store_true", help="whether to train the policy"
-    )
-    parser.add_argument(
-        "--model-path", type=str, help="path to sb3 model for evaluation"
-    )
-    parser.add_argument(
-        "--ee-type",            
-        type=str,
-        default='reduced_gripper',  # 'reduced_gripper', 'full_gripper'
-        help="end effector type"
-    )
-    parser.add_argument(
-        "--ee-move-independently",
-        type=bool,
-        default=False, 
-        help="one action can only move arm or ee in one time."
-    )
-    parser.add_argument(
-        "--enable-tgs",
-        type=bool,
-        default=False, 
-        help="enable tgs or not"
-    )
-    parser.add_argument(
-        "--obs-noise",
-        type=float,
-        default=0.0,
-        help="observation noise"
-    )
-    parser.add_argument(
-        "--ee-move-first",
-        type=bool,
-        default=True,
-        help="in one action, finish moving ee first, then move the arm." 
-    )
-    parser.add_argument(
-        "--size-range",
-        type=float,
-        default=0.0035,
-        help="range for object's size." 
-    )
+    parser.add_argument("-n", "--n-envs", type=int, default=16, help="Number of parallel envs to run.")
+    parser.add_argument("--train", action="store_true", help="Whether to train the policy")
+    parser.add_argument("--model-path", type=str, help="Path to sb3 model for evaluation")
+    parser.add_argument("--seed", type=int, help="Random seed to initialize training with",)
+    parser.add_argument("--max-episode-steps", type=int, default=100, help="Max steps per episode before truncating them")
+    parser.add_argument("--total-timesteps", type=int, default=8_000_000, help="Total timesteps for training")
+    parser.add_argument("--rollout_steps", type=float, default=4000, help="Rollout steps for PPO." )    # 10000
+    parser.add_argument("--batch_size", type=float, default=400, help="Batch size for PPO." )
+    parser.add_argument("--gamma", type=float, default=0.8, help="Gamma for PPO." )
+    parser.add_argument("--n_epochs", type=float, default=20, help="N epochs for PPO." )
+    parser.add_argument("--log-dir", type=str, default="logs/PPO/", help="Path for where logs, checkpoints, and videos are saved")
+    parser.add_argument("--pre-trained", action="store_true", help="If using pre-trained model or not")
+    parser.add_argument("--pre-trained-dir", type=str, default="ManiSkill2-Sim2Real/train_eval/pre_trained/",help="Dir of pretrained model")
+    parser.add_argument("--tensorboard_log_dir", type=str, default="/chichu-slow-vol/tensorboard/", help="Dir of tensorboard log")
+    #####----- Env Args -----#####
+    parser.add_argument("--ee-type", type=str, default='reduced_gripper', help="End effector type") # 'reduced_gripper', 'full_gripper'
+    parser.add_argument("--ee-move-independently", action="store_true", help="One action can only move arm or ee in one time.")
+    parser.add_argument("--enable-tgs", action="store_true", help="Enable tgs or not")
+    parser.add_argument("--obs-noise", type=float, default=0.0, help="Observation noise")
+    parser.add_argument("--ee-move-first", type=bool, default=True, help="In one action, finish moving ee first, then move the arm." )
+    parser.add_argument("--size-range", type=float, default=0.0035, help="Range for object's size." )
+
     args = parser.parse_args()
     return args
 
@@ -145,10 +58,11 @@ def main():
     n_epochs = args.n_epochs
     log_dir = args.log_dir + env_id
     pre_trained_dir = args.pre_trained_dir + env_id
+    tensorboard_log_dir = args.tensorboard_log_dir + env_id
     #####----- Env Args -----#####
     obs_mode = "state"
-    control_mode = "constvel_ee_delta_pose"   # "pd_ee_delta_pose", "constvel_ee_delta_pose"
     reward_mode = "dense"
+    control_mode = "constvel_ee_delta_pose"   # "pd_ee_delta_pose", "constvel_ee_delta_pose"
     low_level_control_mode = 'position'
     motion_data_type = ['qpos', 'qvel', 'qacc', '(qf - passive_qf)', 'qf', 'ee_pos']
     ee_type = args.ee_type 
@@ -158,9 +72,9 @@ def main():
     ee_move_first =  args.ee_move_first
     size_range = args.size_range
     #####----- Debug Args -----#####
-    render_mode = 'cameras' # 'human', 'cameras'    
+    render_mode = 'human' # 'human', 'cameras'    
     fix_task_configuration = False
-    render_by_sim_step = False
+    render_by_sim_step = True
     paused = False
     
     if args.seed is not None:
@@ -185,6 +99,7 @@ def main():
                 obs_noise=obs_noise,
                 ee_move_first=ee_move_first,
                 size_range=size_range,
+                #####----- Debug Args -----#####
                 fix_task_configuration = fix_task_configuration,
                 render_by_sim_step = render_by_sim_step,
                 paused=paused,
@@ -223,17 +138,17 @@ def main():
     # Define the policy configuration and algorithm configuration
     policy_kwargs = dict(net_arch=[256, 256])
     model = PPO(
-        "MlpPolicy",
-        env,
+        "MlpPolicy", 
+        env, 
         policy_kwargs=policy_kwargs,
-        verbose=1,
         n_steps=rollout_steps // num_envs,  # 10000
         batch_size=batch_size,
         gamma=gamma,     # default = 0.85
         gae_lambda=0.9,
         n_epochs=n_epochs,    # 5
-        tensorboard_log=log_dir,
+        tensorboard_log=tensorboard_log_dir,
         target_kl=0.1,  
+        verbose=1,
     )
 
     if not args.train:

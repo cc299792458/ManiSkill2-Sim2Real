@@ -3,7 +3,7 @@ from collections import OrderedDict
 import numpy as np
 import sapien.core as sapien
 from sapien.core import Pose
-from transforms3d.euler import euler2quat
+from transforms3d.euler import euler2quat, quat2euler
 
 from mani_skill2.utils.registration import register_env
 from mani_skill2.utils.sapien_utils import vectorize_pose
@@ -23,11 +23,6 @@ class PickCubeEnv(StationaryManipulationEnv):
         half_cube_size = self.org_half_cube_size
         self.cube_half_size = np.array([half_cube_size] * 3, np.float32)  # (chichu) change the half size of cube from 0.02 to 0.049/2 to align the real cube.
         self.last_obj_to_goal_dist = 0
-        # TODO(chichu): need to be removed
-        # import sys
-        # sys.path.append('/home/chichu/Documents/Sapien/ManiSkill2-Sim2Real')
-        # from real_robot.envs.base_env import XArmBaseEnv
-        # if not isinstance(self, XArmBaseEnv):
         super().__init__(*args, **kwargs)
 
     def _load_actors(self):
@@ -247,33 +242,40 @@ class PickCubeEnv_v2(PickCubeEnv):
 # Note: 50 steps is more suitable for position control
 @register_env("PickCube-v3", max_episode_steps=50)
 class PickCubeEnv_v3(PickCubeEnv):
-    # better reward
     def compute_dense_reward(self, info, **kwargs):
         reward = 0.0
-
         if info["success"]:
             reward += 5
             return reward
-        
         if info["time_out"]:
             reward -= 3
-
         if info["ee_constraint_break"]:
             reward -= 8
-
+        #####----- Angular velocity penalty -----#####
+        obj_angvel = self.obj.angular_velocity
+        obj_angvel_norm = np.linalg.norm(obj_angvel)
+        if obj_angvel_norm > 0.5:
+            reward -= 0.5 
+        #####----- Rotate penalty -----#####
+        obj_quat = self.obj.pose.q
+        obj_euler = np.abs(quat2euler(obj_quat))
+        reward -= np.clip((obj_euler[0]+obj_euler[1])*2, a_min=0, a_max=1)
+        #####----- Reach reward -----#####
         tcp_to_obj_pos = self.obj.pose.p - self.tcp.pose.p
         tcp_to_obj_dist = np.linalg.norm(tcp_to_obj_pos)
         reaching_reward = 1 - np.tanh(5 * tcp_to_obj_dist)
         reward += reaching_reward
-        
+        #####----- Grasped reward -----#####
         is_grasped = self.agent.check_grasp(self.obj) # remove max_angle=30 yeilds much better performance
         if is_grasped:
             reward += 1
+            #####----- Reach reward 2 -----#####
             obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
-            place_reward = 1 - np.tanh(5 * obj_to_goal_dist)
-            reward += place_reward
-
-            # static reward
+            if obj_to_goal_dist < self.last_obj_to_goal_dist:
+                place_reward = 1 - np.tanh(5 * obj_to_goal_dist)
+                reward += place_reward
+            self.last_obj_to_goal_dist = obj_to_goal_dist
+            #####----- Static reward -----#####
             if self.check_obj_placed():
                 if self.ee_type == 'reduced_gripper':
                     qvel = self.agent.robot.get_qvel()[:-2]
@@ -281,18 +283,6 @@ class PickCubeEnv_v3(PickCubeEnv):
                     qvel = self.agent.robot.get_qvel()[:-6]
                 static_reward = 1 - np.tanh(5 * np.linalg.norm(qvel))
                 reward += static_reward
-
-        if self.ee_move_independently:
-            reached = self.check_reached()
-            if not reached:
-                if info['ee_move']:
-                    reward -= 1
-            if reached and (not is_grasped):
-                if info['ee_move']:
-                    reward += 1
-            if is_grasped:
-                if info['ee_move']:
-                    reward -= 1
 
         return reward
 
