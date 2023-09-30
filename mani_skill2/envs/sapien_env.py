@@ -103,14 +103,14 @@ class BaseEnv(gym.Env):
         low_level_control_mode: str = None,
         motion_data_type: List[str] = None,
         sim_params: dict = None,
-        fix_task_configuration: bool = False,
-        render_by_sim_step: bool = False,
-        paused: bool = False,
         ee_type: str = None,
         ee_move_independently: bool = False,
         enable_tgs: bool = False,
         obs_noise: float = 0.0,
         ee_move_first: bool = False,
+        fix_task_configuration: bool = False,
+        render_by_sim_step: bool = False,
+        paused: bool = False,
     ):
         # Create SAPIEN engine
         self._engine = sapien.Engine()

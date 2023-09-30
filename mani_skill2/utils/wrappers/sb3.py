@@ -1,5 +1,7 @@
 import gym
 
+# Defines a continuous, infinite horizon, task where done is always False
+# unless a timelimit is reached.
 class ContinuousTaskWrapper(gym.Wrapper):
     def __init__(self, env, max_episode_steps: int) -> None:
         super().__init__(env)
