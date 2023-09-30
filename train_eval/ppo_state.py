@@ -48,7 +48,7 @@ class SuccessInfoWrapper(gym.Wrapper):
 
                     
 def parse_args():
-    env_id = "PickCube-v3"
+    env_id = "StackCube-v3"
     parser = argparse.ArgumentParser(
         description="Use Stable-Baselines-3 PPO to train ManiSkill2 tasks"
     )
@@ -140,7 +140,7 @@ def parse_args():
     parser.add_argument(
         "--size-range",
         type=float,
-        default=0.0025,
+        default=0.0035,
         help="range for object's size." 
     )
     args = parser.parse_args()

@@ -61,32 +61,40 @@ class UniformSampler:
 
 @register_env("StackCube-v0", max_episode_steps=200)
 class StackCubeEnv(StationaryManipulationEnv):
-    def _get_default_scene_config(self, sim_params):
-        scene_config = super()._get_default_scene_config(sim_params)
+    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0, size_range, **kwargs):
+        self.size_range=size_range
+        super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, **kwargs)
+
+    def _get_default_scene_config(self, sim_params, enable_tgs):
+        scene_config = super()._get_default_scene_config(sim_params, enable_tgs)
         scene_config.enable_pcm = True
         return scene_config
 
     def _load_actors(self):
         self._add_ground(render=self.bg_name is None)
 
-        self.box_half_size = np.float32([0.019] * 3) # increase from 0.02 to 0.0245
+        self.box_half_size = np.float32([0.02] * 3)
         self.cubeA = self._build_cube(self.box_half_size, color=(1, 0, 0), name="cubeA")
         self.cubeB = self._build_cube(
             self.box_half_size, color=(0, 1, 0), name="cubeB", static=False
         )
 
     def _initialize_actors(self):
-        xy = self._episode_rng.uniform(-0.05, 0.05, [2])
         # decrease region size.
-        region = [[-0.1, -0.1], [0.1, 0.1]]
+        # xy = self._episode_rng.uniform(-0.05, 0.05, [2])
+        region = [[-0.075, -0.075], [0.075, 0.075]]
         sampler = UniformSampler(region, self._episode_rng)
         radius = np.linalg.norm(self.box_half_size[:2]) + 0.001
-        cubeA_xy = xy + sampler.sample(radius, 100)
-        cubeB_xy = xy + sampler.sample(radius, 100, verbose=False)
+        cubeA_xy = sampler.sample(radius, 100)
+        cubeB_xy = sampler.sample(radius, 100, verbose=False)
 
         cubeA_quat = euler2quat(0, 0, self._episode_rng.uniform(0, 2 * np.pi))
         cubeB_quat = euler2quat(0, 0, self._episode_rng.uniform(0, 2 * np.pi))
         z = self.box_half_size[2]
+        if self.fix_task_configuration:
+            cubeA_xy = np.array([0.0, 0.0])
+            cubeB_xy = np.array([0.05, 0.05])
+            cubeA_quat = cubeB_quat = np.array([1.0, 0.0, 0.0, 0.0])
         cubeA_pose = sapien.Pose([cubeA_xy[0], cubeA_xy[1], z], cubeA_quat)
         cubeB_pose = sapien.Pose([cubeB_xy[0], cubeB_xy[1], z], cubeB_quat)
 

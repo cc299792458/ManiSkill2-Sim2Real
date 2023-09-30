@@ -40,7 +40,7 @@ class PickCubeEnv(StationaryManipulationEnv):
         if self.size_range != 0.0:
             self._actors.remove(self.obj)
             self._scene.remove_actor(self.obj)
-            random_size = self._episode_rng.uniform(-self.size_range, 2 * self.size_range)
+            random_size = self._episode_rng.uniform(0, self.size_range)
             half_cube_size = self.org_half_cube_size + random_size
             self.cube_half_size = np.array([half_cube_size] * 3, np.float32)
             self.cube_half_size[2] = self.org_half_cube_size
