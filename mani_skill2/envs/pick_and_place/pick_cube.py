@@ -251,11 +251,11 @@ class PickCubeEnv_v3(PickCubeEnv):
             reward -= 3
         if info["ee_constraint_break"]:
             reward -= 8
-        #####----- Angular velocity penalty -----#####
-        obj_angvel = self.obj.angular_velocity
-        obj_angvel_norm = np.linalg.norm(obj_angvel)
-        if obj_angvel_norm > 0.5:
-            reward -= 0.5 
+        # #####----- Angular velocity penalty -----#####
+        # obj_angvel = self.obj.angular_velocity
+        # obj_angvel_norm = np.linalg.norm(obj_angvel)
+        # if obj_angvel_norm > 0.5:
+        #     reward -= 0.5 
         #####----- Rotate penalty -----#####
         obj_quat = self.obj.pose.q
         obj_euler = np.abs(quat2euler(obj_quat))
