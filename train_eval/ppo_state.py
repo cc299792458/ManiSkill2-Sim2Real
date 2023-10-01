@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument("--enable-tgs", action="store_true", help="Enable tgs or not")
     parser.add_argument("--obs-noise", type=float, default=0.0, help="Observation noise")
     parser.add_argument("--ee-move-first", type=bool, default=True, help="In one action, finish moving ee first, then move the arm." )
-    parser.add_argument("--size-range", type=float, default=0.0035, help="Range for object's size." )
+    parser.add_argument("--size-range", type=float, default=0.0, help="Range for object's size." )
 
     args = parser.parse_args()
     return args
