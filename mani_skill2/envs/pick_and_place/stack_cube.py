@@ -473,6 +473,9 @@ class StackCubeEnv_v3(StackCubeEnv):
         if self.agent.check_grasp(self.cubeA):
             reward += self.unrotate_reward()
 
+        cubeB_vel_penalty = np.linalg.norm(self.cubeB.velocity) + np.linalg.norm(self.cubeB.angular_velocity)
+        reward -= cubeB_vel_penalty
+
         # reward = reward - 9.0
         if info["time_out"]:
             reward -= 3

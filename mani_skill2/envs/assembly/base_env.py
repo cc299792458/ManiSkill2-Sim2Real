@@ -28,8 +28,8 @@ class StationaryManipulationEnv(BaseEnv):
         self.robot_init_qpos_noise = robot_init_qpos_noise
         super().__init__(*args, **kwargs)
 
-    def _get_default_scene_config(self, sim_params):
-        scene_config = super()._get_default_scene_config(sim_params)
+    def _get_default_scene_config(self, sim_params, enable_tgs):
+        scene_config = super()._get_default_scene_config(sim_params, enable_tgs)
         scene_config.enable_pcm = True
         return scene_config
 
