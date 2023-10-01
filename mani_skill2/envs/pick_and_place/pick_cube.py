@@ -250,7 +250,7 @@ class PickCubeEnv_v3(PickCubeEnv):
         if info["time_out"]:
             reward -= 3
         if info["ee_constraint_break"]:
-            reward -= 8
+            reward -= 3         # 8
         # #####----- Angular velocity penalty -----#####
         # obj_angvel = self.obj.angular_velocity
         # obj_angvel_norm = np.linalg.norm(obj_angvel)
