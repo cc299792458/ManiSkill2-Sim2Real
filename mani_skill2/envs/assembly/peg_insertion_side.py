@@ -713,7 +713,7 @@ class PegInsertionSideEnv_v2(PegInsertionSideEnv):
     def compute_dense_reward(self, info, **kwargs):
         reward = 0.0
 
-        if info["time out"]:
+        if info["time_out"]:
             reward -= 3
 
         if info["success"]:
