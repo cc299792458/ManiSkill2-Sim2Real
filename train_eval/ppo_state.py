@@ -26,10 +26,10 @@ def parse_args():
     parser.add_argument("--seed", type=int, help="Random seed to initialize training with",)
     parser.add_argument("--max-episode-steps", type=int, default=100, help="Max steps per episode before truncating them")
     parser.add_argument("--total-timesteps", type=int, default=8_000_000, help="Total timesteps for training")
-    parser.add_argument("--rollout-steps", type=float, default=4000, help="Rollout steps for PPO." )    # 10000
-    parser.add_argument("--batch-size", type=float, default=400, help="Batch size for PPO." )
+    parser.add_argument("--rollout-steps", type=int, default=4000, help="Rollout steps for PPO." )    # 10000
+    parser.add_argument("--batch-size", type=int, default=400, help="Batch size for PPO." )
     parser.add_argument("--gamma", type=float, default=0.8, help="Gamma for PPO." )
-    parser.add_argument("--n-epochs", type=float, default=20, help="N epochs for PPO." )
+    parser.add_argument("--n-epochs", type=int, default=20, help="N epochs for PPO." )
     parser.add_argument("--log-dir", type=str, default="logs/PPO/", help="Path for where logs, checkpoints, and videos are saved")
     parser.add_argument("--pre-trained", action="store_true", help="If using pre-trained model or not")
     parser.add_argument("--pre-trained-dir", type=str, default="ManiSkill2-Sim2Real/train_eval/pre_trained/",help="Dir of pretrained model")
@@ -72,9 +72,9 @@ def main():
     ee_move_first =  args.ee_move_first
     size_range = args.size_range
     #####----- Debug Args -----#####
-    render_mode = 'human' # 'human', 'cameras'    
+    render_mode = 'cameras' # 'human', 'cameras'    
     fix_task_configuration = False
-    render_by_sim_step = True
+    render_by_sim_step = False
     paused = False
     
     if args.seed is not None:

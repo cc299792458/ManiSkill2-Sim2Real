@@ -256,10 +256,6 @@ class PickCubeEnv_v3(PickCubeEnv):
         # obj_angvel_norm = np.linalg.norm(obj_angvel)
         # if obj_angvel_norm > 0.5:
         #     reward -= 0.5 
-        #####----- Rotate penalty -----#####
-        obj_quat = self.obj.pose.q
-        obj_euler = np.abs(quat2euler(obj_quat))
-        reward -= np.clip((obj_euler[0]+obj_euler[1])*2, a_min=0, a_max=1)
         #####----- Reach reward -----#####
         tcp_to_obj_pos = self.obj.pose.p - self.tcp.pose.p
         tcp_to_obj_dist = np.linalg.norm(tcp_to_obj_pos)
@@ -269,6 +265,10 @@ class PickCubeEnv_v3(PickCubeEnv):
         is_grasped = self.agent.check_grasp(self.obj) # remove max_angle=30 yeilds much better performance
         if is_grasped:
             reward += 1
+            #####----- Rotate penalty -----#####
+            obj_quat = self.obj.pose.q
+            obj_euler = np.abs(quat2euler(obj_quat))
+            reward -= np.clip((obj_euler[0]+obj_euler[1]), a_min=0, a_max=0.5)
             #####----- Reach reward 2 -----#####
             obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
             if obj_to_goal_dist < self.last_obj_to_goal_dist:
