@@ -3,7 +3,7 @@ from typing import List, Tuple
 
 import numpy as np
 import sapien.core as sapien
-from transforms3d.euler import euler2quat
+from transforms3d.euler import euler2quat, quat2euler
 
 from mani_skill2.utils.registration import register_env
 from mani_skill2.utils.sapien_utils import check_actor_static, vectorize_pose
@@ -122,9 +122,7 @@ class StackCubeEnv(StationaryManipulationEnv):
         pos_A = self.cubeA.pose.p
         pos_B = self.cubeB.pose.p
         offset = pos_A - pos_B
-        xy_flag = (
-            np.linalg.norm(offset[:2]) <= np.linalg.norm(self.box_half_size[:2]) + 0.005
-        )
+        xy_flag = (np.linalg.norm(offset[:2]) <= np.linalg.norm(self.box_half_size[:2]) + 0.005)
         z_flag = np.abs(offset[2] - self.box_half_size[2] * 2) <= 0.005
         return bool(xy_flag and z_flag)
 
@@ -446,6 +444,16 @@ class StackCubeEnv_v3(StackCubeEnv):
         static_reward = 1 - np.tanh(v*10 + av)
         
         return (reward + static_reward) / 2.0
+    
+    def unrotate_reward(self):
+        cubeA_quat = self.cubeA.pose.q
+        cubeA_euler = np.abs(quat2euler(cubeA_quat))
+
+        roll, pitch = cubeA_euler[0], cubeA_euler[1]
+        unrotate_reward = 1 - np.clip((roll+pitch)/(np.pi/4), a_min=0, a_max=1)
+
+        return unrotate_reward
+
         
     def compute_dense_reward(self, info, **kwargs):
 
@@ -461,6 +469,9 @@ class StackCubeEnv_v3(StackCubeEnv):
             reward = 2 + self.lift_reward()
         else:
             reward = self.reaching_reward()
+
+        if self.agent.check_grasp(self.cubeA):
+            reward += self.unrotate_reward()
 
         # reward = reward - 9.0
         if info["time_out"]:
