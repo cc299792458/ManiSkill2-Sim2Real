@@ -51,7 +51,8 @@ class PickCubeEnv(StationaryManipulationEnv):
         # NOTE(chichu): fixed to a certain pose when evaluate on real robot with simulation.
         if self.fix_task_configuration:
             xyz = np.array([0.0, 0.0, self.cube_half_size[2]])
-            q = [1, 0, 0, 0]
+            ori = 0
+            q = euler2quat(0, 0, ori)
         self.obj.set_pose(Pose(xyz, q))
 
     def _initialize_task(self, max_trials=100, verbose=False):
@@ -249,8 +250,8 @@ class PickCubeEnv_v3(PickCubeEnv):
             return reward
         if info["time_out"]:
             reward -= 3
-        if info["ee_constraint_break"]:
-            reward -= 8
+        # if info["ee_constraint_break"]:
+        #     reward -= 8
         # #####----- Angular velocity penalty -----#####
         # obj_angvel = self.obj.angular_velocity
         # obj_angvel_norm = np.linalg.norm(obj_angvel)
@@ -261,6 +262,18 @@ class PickCubeEnv_v3(PickCubeEnv):
         tcp_to_obj_dist = np.linalg.norm(tcp_to_obj_pos)
         reaching_reward = 1 - np.tanh(5 * tcp_to_obj_dist)
         reward += reaching_reward
+        #####----- Grasp rotate reward -----#####
+        grasp_rot_loss_fxn = lambda A: np.tanh(np.trace(A.T @ A))  # trace(A.T @ A) has range [0,8] for A being difference of rotation matrices
+        tcp_pose_wrt_cubeA = self.obj.pose.inv() * self.tcp.pose
+        tcp_rot_wrt_cubeA = tcp_pose_wrt_cubeA.to_transformation_matrix()[:3, :3]
+        gt_rots = [
+            np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]]),
+            np.array([[0, -1, 0], [-1, 0, 0], [0, 0, -1]]),
+            np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]]),
+            np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]]),
+        ]
+        grasp_rot_loss = min([grasp_rot_loss_fxn(x - tcp_rot_wrt_cubeA) for x in gt_rots])
+        reward += 1 - grasp_rot_loss
         #####----- Grasped reward -----#####
         is_grasped = self.agent.check_grasp(self.obj) # remove max_angle=30 yeilds much better performance
         if is_grasped:
@@ -268,7 +281,8 @@ class PickCubeEnv_v3(PickCubeEnv):
             #####----- Rotate penalty -----#####
             obj_quat = self.obj.pose.q
             obj_euler = np.abs(quat2euler(obj_quat))
-            reward -= np.clip((obj_euler[0]+obj_euler[1]), a_min=0, a_max=0.5)
+            obj_euler_xy = (obj_euler[0]+obj_euler[1])
+            reward += (1 - np.tanh(obj_euler_xy)) / 2
             #####----- Reach reward 2 -----#####
             obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
             if obj_to_goal_dist < self.last_obj_to_goal_dist:
