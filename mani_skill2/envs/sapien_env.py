@@ -31,6 +31,7 @@ from mani_skill2.utils.trimesh_utils import (
     merge_meshes,
 )
 from mani_skill2.utils.visualization.misc import observations_to_images, tile_images
+from mani_skill2.utils.generate_sim_params import generate_sim_params
 
 
 class BaseEnv(gym.Env):
@@ -87,9 +88,9 @@ class BaseEnv(gym.Env):
 
     def __init__(
         self,
-        obs_mode=None,
-        reward_mode=None,
-        control_mode=None,
+        obs_mode='state',
+        reward_mode='dense',
+        control_mode='constvel_ee_delta_pose',
         # sim_freq: int = 200,
         control_freq: int = 20,
         renderer: str = "sapien",
@@ -100,14 +101,14 @@ class BaseEnv(gym.Env):
         camera_cfgs: dict = None,
         render_camera_cfgs: dict = None,
         bg_name: str = None,
-        low_level_control_mode: str = None,
-        motion_data_type: List[str] = None,
-        sim_params: dict = None,
-        ee_type: str = None,
+        low_level_control_mode: str = 'position',
+        motion_data_type: List[str] = ['qpos', 'qvel', 'qacc', '(qf - passive_qf)', 'qf', 'ee_pos'],
+        sim_params: dict = generate_sim_params(),
+        ee_type: str = 'reduced_gripper',
         ee_move_independently: bool = False,
         enable_tgs: bool = False,
         obs_noise: float = 0.0,
-        ee_move_first: bool = False,
+        ee_move_first: bool = True,
         fix_task_configuration: bool = False,
         render_by_sim_step: bool = False,
         paused: bool = False,
