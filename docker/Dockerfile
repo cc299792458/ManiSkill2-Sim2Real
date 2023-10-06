@@ -45,6 +45,7 @@ RUN pip install setuptools==63.2.0
 RUN pip install "stable-baselines3[extra]<2.0.0"
 RUN git clone https://github.com/cc299792458/ManiSkill2-Sim2Real.git # add grasp rotate reward
 RUN cd ManiSkill2-Sim2Real && pip install -e .
+RUN rm -d ./ManiSkill2-Learn && ./ManiSkill2-Learn-ori
 RUN git clone https://github.com/cc299792458/ManiSkill2-Learn.git
 RUN cd ManiSkill2-Learn
 RUN conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3 -c pytorch
