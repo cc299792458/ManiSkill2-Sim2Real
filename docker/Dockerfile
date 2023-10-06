@@ -43,14 +43,14 @@ COPY nvidia_layers.json /etc/vulkan/implicit_layer.d/nvidia_layers.json
 # RUN pip install mani-skill2==0.4.2 && pip cache purge
 RUN pip install setuptools==63.2.0
 RUN pip install "stable-baselines3[extra]<2.0.0"
-RUN git clone https://github.com/cc299792458/ManiSkill2-Sim2Real.git # add grasp rotate reward
-RUN cd ManiSkill2-Sim2Real && pip install -e .
-RUN rm -d ./ManiSkill2-Learn && ./ManiSkill2-Learn-ori
-RUN git clone https://github.com/cc299792458/ManiSkill2-Learn.git
-RUN cd ManiSkill2-Learn
 RUN conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3 -c pytorch
 RUN pip install pytorch3d 
 RUN pip install ninja
+RUN git clone https://github.com/cc299792458/ManiSkill2-Sim2Real.git # add lots of content to docker file
+RUN cd ManiSkill2-Sim2Real && pip install -e .
+# RUN rm -d ./ManiSkill2-Learn && ./ManiSkill2-Learn-ori
+RUN git clone https://github.com/cc299792458/ManiSkill2-Learn.git
+RUN cd ManiSkill2-Learn && git checkout ms2_gym
 RUN pip install -e .
 RUN ln -s ../data data
 RUN pip cache purge
