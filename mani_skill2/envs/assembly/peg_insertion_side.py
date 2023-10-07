@@ -14,7 +14,7 @@ from .base_env import StationaryManipulationEnv
 @register_env("PegInsertionSide-v0", max_episode_steps=200)
 class PegInsertionSideEnv(StationaryManipulationEnv):
     _clearance = 0.003
-    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0, size_range, **kwargs):
+    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0, size_range=0.0, **kwargs):
         self.size_range=size_range
         super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, **kwargs)
 
