@@ -46,7 +46,7 @@ RUN pip install "stable-baselines3[extra]<2.0.0"
 RUN conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3 -c pytorch
 RUN pip install pytorch3d 
 RUN pip install ninja
-RUN git clone https://github.com/cc299792458/ManiSkill2-Sim2Real.git # add lots of content to docker file
+RUN git clone https://github.com/cc299792458/ManiSkill2-Sim2Real.git # modify pick cube
 RUN cd ManiSkill2-Sim2Real && pip install -e .
 # RUN rm -d ./ManiSkill2-Learn && ./ManiSkill2-Learn-ori
 RUN git clone https://github.com/cc299792458/ManiSkill2-Learn.git

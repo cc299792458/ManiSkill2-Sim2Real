@@ -264,15 +264,15 @@ class PickCubeEnv_v3(PickCubeEnv):
         reward += reaching_reward
         #####----- Grasp rotate reward -----#####
         grasp_rot_loss_fxn = lambda A: np.tanh(np.trace(A.T @ A))  # trace(A.T @ A) has range [0,8] for A being difference of rotation matrices
-        tcp_pose_wrt_cubeA = self.obj.pose.inv() * self.tcp.pose
-        tcp_rot_wrt_cubeA = tcp_pose_wrt_cubeA.to_transformation_matrix()[:3, :3]
+        tcp_pose_wrt_obj = self.obj.pose.inv() * self.tcp.pose
+        tcp_rot_wrt_obj = tcp_pose_wrt_obj.to_transformation_matrix()[:3, :3]
         gt_rots = [
             np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]]),
             np.array([[0, -1, 0], [-1, 0, 0], [0, 0, -1]]),
             np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]]),
             np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]]),
         ]
-        grasp_rot_loss = min([grasp_rot_loss_fxn(x - tcp_rot_wrt_cubeA) for x in gt_rots])
+        grasp_rot_loss = min([grasp_rot_loss_fxn(x - tcp_rot_wrt_obj) for x in gt_rots])
         reward += 1 - grasp_rot_loss
         #####----- Grasped reward -----#####
         is_grasped = self.agent.check_grasp(self.obj) # remove max_angle=30 yeilds much better performance
