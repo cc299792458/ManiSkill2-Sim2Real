@@ -278,7 +278,7 @@ class PickCubeEnv_v3(PickCubeEnv):
         is_grasped = self.agent.check_grasp(self.obj) # remove max_angle=30 yeilds much better performance
         if is_grasped:
             reward += 1
-            #####----- Rotate penalty -----#####
+            #####----- Rotate reward -----#####
             obj_quat = self.obj.pose.q
             obj_euler = np.abs(quat2euler(obj_quat))
             obj_euler_xy = (obj_euler[0]+obj_euler[1])

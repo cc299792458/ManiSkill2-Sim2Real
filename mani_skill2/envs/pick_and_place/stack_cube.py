@@ -61,7 +61,7 @@ class UniformSampler:
 
 @register_env("StackCube-v0", max_episode_steps=200)
 class StackCubeEnv(StationaryManipulationEnv):
-    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0, size_range, **kwargs):
+    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0, size_range=0.0, **kwargs):
         self.size_range=size_range
         super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, **kwargs)
 

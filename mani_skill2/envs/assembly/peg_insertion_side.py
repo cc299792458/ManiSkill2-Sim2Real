@@ -10,7 +10,7 @@ from mani_skill2.utils.sapien_utils import hex2rgba, look_at, vectorize_pose
 
 from .base_env import StationaryManipulationEnv
 
-
+# length = 0.15, width = 0.05; hole side = 0.07 * 0.0675 
 @register_env("PegInsertionSide-v0", max_episode_steps=200)
 class PegInsertionSideEnv(StationaryManipulationEnv):
     _clearance = 0.003
