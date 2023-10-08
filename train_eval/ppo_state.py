@@ -16,7 +16,7 @@ from mani_skill2.utils.generate_sim_params import generate_sim_params
 
                     
 def parse_args():
-    env_id = "PickCube-v3"
+    env_id = "PegInsertionSide-v2"
     parser = argparse.ArgumentParser(description="Use Stable-Baselines-3 PPO to train ManiSkill2 tasks")
     #####----- PPO Args -----#####
     parser.add_argument("-e", "--env-id", type=str, default=env_id)

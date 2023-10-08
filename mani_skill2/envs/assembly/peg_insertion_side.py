@@ -18,7 +18,7 @@ class PegInsertionSideEnv(StationaryManipulationEnv):
         self.size_range=size_range
         super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, **kwargs)
 
-    def reset(self, reconfigure=True, **kwargs):
+    def reset(self, reconfigure=False, **kwargs):
         return super().reset(reconfigure=reconfigure, **kwargs)
 
     def _build_box_with_hole(
@@ -58,8 +58,9 @@ class PegInsertionSideEnv(StationaryManipulationEnv):
 
         # peg
         # length, radius = 0.1, 0.02
-        length = self._episode_rng.uniform(0.075, 0.125)
-        radius = self._episode_rng.uniform(0.015, 0.025)
+        # length = self._episode_rng.uniform(0.075, 0.125)
+        # radius = self._episode_rng.uniform(0.015, 0.025)
+        length, radius = 0.075, 0.025
         self.peg_half_length = length
         self.peg_radius = radius
         builder = self._scene.create_actor_builder()
@@ -94,8 +95,10 @@ class PegInsertionSideEnv(StationaryManipulationEnv):
         self.peg_half_size = np.float32([length, radius, radius])
 
         # box with hole
-        center = 0.5 * (length - radius) * self._episode_rng.uniform(-1, 1, size=2)
-        inner_radius, outer_radius, depth = radius + self._clearance, length, length
+        # center = 0.5 * (length - radius) * self._episode_rng.uniform(-1, 1, size=2)
+        # inner_radius, outer_radius, depth = radius + self._clearance, length, length
+        center = np.array([0.0, 0.0])
+        inner_radius, outer_radius, depth = 0.0325, length, length
         self.box = self._build_box_with_hole(
             inner_radius, outer_radius, depth, center=center
         )
@@ -103,13 +106,13 @@ class PegInsertionSideEnv(StationaryManipulationEnv):
         self.box_hole_radius = inner_radius
 
     def _initialize_actors(self):
-        xy = self._episode_rng.uniform([-0.1, -0.3], [0.1, 0])
+        xy = self._episode_rng.uniform([-0.05, -0.1], [0.05, 0])
         pos = np.hstack([xy, self.peg_half_size[2]])
         ori = np.pi / 2 + self._episode_rng.uniform(-np.pi / 3, np.pi / 3)
         quat = euler2quat(0, 0, ori)
         self.peg.set_pose(Pose(pos, quat))
 
-        xy = self._episode_rng.uniform([-0.05, 0.2], [0.05, 0.4])
+        xy = self._episode_rng.uniform([-0.05, 0.2], [0.05, 0.3])
         pos = np.hstack([xy, self.peg_half_size[0]])
         ori = np.pi / 2 + self._episode_rng.uniform(-np.pi / 8, np.pi / 8)
         quat = euler2quat(0, 0, ori)
