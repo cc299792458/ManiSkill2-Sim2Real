@@ -46,9 +46,13 @@ RUN pip install setuptools==63.2.0
 RUN conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3 -c pytorch
 RUN pip install pytorch3d 
 RUN pip install ninja
+<<<<<<< HEAD
 
 COPY requirements.py /opt/conda/lib/python3.8/site-packages/wheel/vendored/packaging/requirements.py
 RUN git clone https://github.com/cc299792458/ManiSkill2-Sim2Real.git # enable_tgs
+=======
+RUN git clone https://github.com/cc299792458/ManiSkill2-Sim2Real.git # modify pick cube
+>>>>>>> 50b0763497144f55be8f52c380da5bfa94dedc97
 RUN cd ManiSkill2-Sim2Real && pip install -e .
 RUN rm -d ManiSkill2-Sim2Real/ManiSkill2-Learn
 RUN git clone https://github.com/cc299792458/ManiSkill2-Learn.git # delete verify=True

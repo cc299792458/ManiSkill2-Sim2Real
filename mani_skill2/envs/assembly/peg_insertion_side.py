@@ -10,11 +10,11 @@ from mani_skill2.utils.sapien_utils import hex2rgba, look_at, vectorize_pose
 
 from .base_env import StationaryManipulationEnv
 
-
+# length = 0.15, width = 0.05; hole side = 0.07 * 0.0675 
 @register_env("PegInsertionSide-v0", max_episode_steps=200)
 class PegInsertionSideEnv(StationaryManipulationEnv):
     _clearance = 0.003
-    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0, size_range, **kwargs):
+    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0, size_range=0.0, **kwargs):
         self.size_range=size_range
         super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, **kwargs)
 

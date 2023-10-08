@@ -106,8 +106,8 @@ class BaseEnv(gym.Env):
         sim_params: dict = generate_sim_params(),
         ee_type: str = 'reduced_gripper',
         ee_move_independently: bool = False,
-        enable_tgs: bool = False,
-        obs_noise: float = 0.0,
+        enable_tgs: bool = True,
+        obs_noise: float = 0.005,
         ee_move_first: bool = True,
         fix_task_configuration: bool = False,
         render_by_sim_step: bool = False,
@@ -726,8 +726,9 @@ class BaseEnv(gym.Env):
             # if (qpos_dis[: -2] < self.qpos_threshold).all() and (qpos_dis[-2: ] < self.qpos_ee_threshold).all() \
             #             and (qvel < self.qvel_threshold).all() \
             #             and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
-            if (qpos_dis[-2: ] < self.qpos_ee_threshold).all() and (qvel < self.qvel_threshold).all() \
-                        and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
+            # if (qpos_dis[-2: ] < self.qpos_ee_threshold).all() and (qvel < self.qvel_threshold).all() \
+            #             and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
+            if (qvel < self.qvel_threshold).all() and ee_p_dis < self.ee_p_threshold and ee_q_dis < self.ee_q_threshold:
                 return True
         elif self.ee_type == 'full_gripper':
             if (qpos_dis[: -6] < self.qpos_threshold).all() and (qpos_dis[-6: ] < self.qpos_ee_threshold).all() \

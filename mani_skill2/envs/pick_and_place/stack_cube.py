@@ -61,7 +61,7 @@ class UniformSampler:
 
 @register_env("StackCube-v0", max_episode_steps=200)
 class StackCubeEnv(StationaryManipulationEnv):
-    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0, size_range, **kwargs):
+    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0, size_range=0.0, **kwargs):
         self.size_range=size_range
         super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, **kwargs)
 
@@ -404,7 +404,24 @@ class StackCubeEnv_v3(StackCubeEnv):
         tcp_pose = self.tcp.pose.p
         cubeA_pos = self.cubeA.pose.p
         cubeA_to_tcp_dist = np.linalg.norm(tcp_pose - cubeA_pos)
-        return 1 - np.tanh(5 * cubeA_to_tcp_dist)
+        reaching_reward = 1 - np.tanh(5 * cubeA_to_tcp_dist)
+
+        return reaching_reward
+    
+    def grasp_rotate_reward(self):
+        grasp_rot_loss_fxn = lambda A: np.tanh(np.trace(A.T @ A))  # trace(A.T @ A) has range [0,8] for A being difference of rotation matrices
+        tcp_pose_wrt_cubeA = self.cubeA.pose.inv() * self.tcp.pose
+        tcp_rot_wrt_cubeA = tcp_pose_wrt_cubeA.to_transformation_matrix()[:3, :3]
+        gt_rots = [
+            np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]]),
+            np.array([[0, -1, 0], [-1, 0, 0], [0, 0, -1]]),
+            np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]]),
+            np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]]),
+        ]
+        grasp_rot_loss = min([grasp_rot_loss_fxn(x - tcp_rot_wrt_cubeA) for x in gt_rots])
+        reward = 1 - grasp_rot_loss
+
+        return reward
 
     def lift_reward(self, height=0.08):
         cubeA_pos = self.cubeA.pose.p
@@ -454,7 +471,6 @@ class StackCubeEnv_v3(StackCubeEnv):
 
         return unrotate_reward
 
-        
     def compute_dense_reward(self, info, **kwargs):
 
         if info["success"]:
