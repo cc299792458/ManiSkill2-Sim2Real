@@ -246,7 +246,7 @@ class PickCubeEnv_v3(PickCubeEnv):
     def compute_dense_reward(self, info, **kwargs):
         reward = 0.0
         if info["success"]:
-            reward += 5
+            reward += 6
             return reward
         if info["time_out"]:
             reward -= 3

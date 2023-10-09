@@ -484,7 +484,7 @@ class StackCubeEnv_v3(StackCubeEnv):
         elif self.agent.check_grasp(self.cubeA):
             reward = 2 + self.lift_reward()
         else:
-            reward = self.reaching_reward()
+            reward = self.reaching_reward() + self.grasp_rotate_reward()
 
         if self.agent.check_grasp(self.cubeA):
             reward += self.unrotate_reward()
