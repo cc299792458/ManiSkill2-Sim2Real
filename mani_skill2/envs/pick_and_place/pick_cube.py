@@ -50,8 +50,8 @@ class PickCubeEnv(StationaryManipulationEnv):
             q = euler2quat(0, 0, ori)
         # NOTE(chichu): fixed to a certain pose when evaluate on real robot with simulation.
         if self.fix_task_configuration:
-            xyz = np.array([0.0, 0.0, self.cube_half_size[2]])
-            ori = 0
+            xyz = np.array([0.05, -0.03, self.cube_half_size[2]])
+            ori = np.pi * 2 / 3
             q = euler2quat(0, 0, ori)
         self.obj.set_pose(Pose(xyz, q))
 

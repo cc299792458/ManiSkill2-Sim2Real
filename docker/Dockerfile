@@ -47,11 +47,11 @@ RUN conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3 -c pytorc
 RUN pip install pytorch3d 
 RUN pip install ninja
 COPY requirements.py /opt/conda/lib/python3.8/site-packages/wheel/vendored/packaging/requirements.py
-RUN git clone https://github.com/cc299792458/ManiSkill2-Sim2Real.git # add something new
+RUN git clone https://github.com/cc299792458/ManiSkill2-Sim2Real.git # modify reward of pickcube and stackcube again
 RUN cd ManiSkill2-Sim2Real && pip install -e .
 RUN rm -d ManiSkill2-Sim2Real/ManiSkill2-Learn
-RUN git clone https://github.com/cc299792458/ManiSkill2-Learn.git # add ppo state
+RUN git clone https://github.com/cc299792458/ManiSkill2-Learn.git # modify features about ppo state
 RUN cd ManiSkill2-Learn && git checkout ms2_gym && pip install -e .
-RUN ln -s ManiSkill2-Sim2real/data ManiSkill2-Learn/data
+# RUN ln -s ManiSkill2-Sim2real/data ManiSkill2-Learn/data
 RUN pip cache purge
 

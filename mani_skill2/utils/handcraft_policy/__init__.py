@@ -1,0 +1,1 @@
+from .pick_cube_v3 import PickCubeV3HandcraftPolicy

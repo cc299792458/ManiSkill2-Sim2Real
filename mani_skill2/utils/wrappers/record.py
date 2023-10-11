@@ -95,7 +95,7 @@ class RecordEpisode(gym.Wrapper):
         self,
         env,
         output_dir,
-        save_trajectory=False,
+        save_trajectory=True,
         trajectory_name=None,
         save_video=True,
         info_on_video=False,
@@ -103,7 +103,7 @@ class RecordEpisode(gym.Wrapper):
         save_on_reset=True,
         clean_on_close=True,
         save_motion_profile=True,
-        motion_data_type=None,
+        motion_data_type=['qpos', 'qvel', 'qacc', '(qf - passive_qf)', 'qf', 'ee_pos'],
     ):
         super().__init__(env)
 
@@ -122,9 +122,7 @@ class RecordEpisode(gym.Wrapper):
         if self.save_trajectory:
             if not trajectory_name:
                 trajectory_name = time.strftime("%Y%m%d_%H%M%S")
-
             self._h5_file = h5py.File(self.output_dir / f"{trajectory_name}.h5", "w")
-
             # Use a separate json to store non-array data
             self._json_path = self._h5_file.filename.replace(".h5", ".json")
             self._json_data = dict(

@@ -287,7 +287,7 @@ def from_pd_joint_delta_pos(
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--traj-path", type=str, required=True)
+    parser.add_argument("--traj-path", type=str, default="/home/chichu/Documents/Sapien/ManiSkill2-Sim2Real/demo/rigid_body/PickCube-v3/trajectory.h5")
     parser.add_argument("-o", "--obs-mode", type=str, help="target observation mode")
     parser.add_argument(
         "-c", "--target-control-mode", type=str, help="target control mode"
@@ -309,7 +309,7 @@ def parse_args():
     parser.add_argument(
         "--allow-failure", action="store_true", help="whether to allow failure episodes"
     )
-    parser.add_argument("--vis", action="store_true")
+    parser.add_argument("--vis", default=True)
     parser.add_argument(
         "--use-env-states",
         action="store_true",

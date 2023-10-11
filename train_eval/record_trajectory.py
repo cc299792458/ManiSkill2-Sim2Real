@@ -14,6 +14,7 @@ import mani_skill2.envs
 from mani_skill2.utils.wrappers import RecordEpisode, SuccessInfoWrapper, ContinuousTaskWrapper
 from mani_skill2.utils.generate_sim_params import generate_sim_params
 
+from mani_skill2.utils.handcraft_policy import PickCubeV3HandcraftPolicy
                     
 def parse_args():
     env_id = "PickCube-v3"
@@ -48,17 +49,9 @@ def parse_args():
 
 def main():
     args = parse_args()
-    #####----- PPO Args -----#####
+    record_num = 10
     env_id = args.env_id
-    num_envs = args.n_envs
-    max_episode_steps = args.max_episode_steps
-    rollout_steps = args.rollout_steps
-    batch_size = args.batch_size
-    gamma = args.gamma
-    n_epochs = args.n_epochs
     log_dir = args.log_dir + env_id
-    pre_trained_dir = args.pre_trained_dir + env_id
-    tensorboard_log_dir = args.tensorboard_log_dir + env_id
     #####----- Env Args -----#####
     obs_mode = "state"
     reward_mode = "dense"
@@ -67,14 +60,14 @@ def main():
     motion_data_type = ['qpos', 'qvel', 'qacc', '(qf - passive_qf)', 'qf', 'ee_pos']
     ee_type = args.ee_type 
     ee_move_independently = args.ee_move_independently
-    enable_tgs = args.enable_tgs
+    enable_tgs = True
     obs_noise = args.obs_noise
     ee_move_first =  args.ee_move_first
     size_range = args.size_range
     #####----- Debug Args -----#####
     render_mode = 'cameras' # 'human', 'cameras'    
     fix_task_configuration = False
-    render_by_sim_step = False
+    render_by_sim_step = True
     paused = False
     
     if args.seed is not None:
@@ -121,89 +114,21 @@ def main():
         record_dir = osp.join(log_dir, "videos/eval")
     else:
         record_dir = osp.join(log_dir, "videos")
-    eval_env = SubprocVecEnv([make_env(env_id, record_dir=record_dir) for _ in range(1)])
-    eval_env = VecMonitor(eval_env)  # attach this so SB3 can log reward metrics
-    eval_env.seed(args.seed)
-    eval_env.reset()
 
-    if not args.train:
-        env = eval_env
-    else:
-        # Create vectorized environments for training
-        env = SubprocVecEnv([make_env(env_id, max_episode_steps=max_episode_steps) for _ in range(num_envs)])
-        env = VecMonitor(env)
-        env.seed(args.seed)
-        env.reset()
+    env = make_env(env_id, record_dir=record_dir)()
+    env.seed(args.seed)
+    policy = PickCubeV3HandcraftPolicy()
 
-    # Define the policy configuration and algorithm configuration
-    policy_kwargs = dict(net_arch=[256, 256])
-    model = PPO(
-        "MlpPolicy", 
-        env, 
-        policy_kwargs=policy_kwargs,
-        n_steps=rollout_steps // num_envs,  # 10000
-        batch_size=batch_size,
-        gamma=gamma,     # default = 0.85
-        gae_lambda=0.9,
-        n_epochs=n_epochs,    # 5
-        tensorboard_log=tensorboard_log_dir,
-        target_kl=0.1,  
-        verbose=1,
-    )
-
-    if not args.train:
-        model_path = args.model_path
-        if model_path is None:
-            model_path = osp.join(log_dir, "best_model")
-        # Load the saved model
-        model = model.load(model_path)
-    else:
-        # define callbacks to periodically save our model and evaluate it to help monitor training
-        # the below freq values will save every 20 rollouts
-        if args.pre_trained:
-            model_path = args.model_path
-            if model_path is None:
-                model_path = osp.join(pre_trained_dir, "pre_trained_model")
-            model = model.load(model_path)
-            model.set_env(env)
-        eval_callback = EvalCallback(
-            eval_env,
-            best_model_save_path=log_dir,
-            log_path=log_dir,
-            eval_freq=20 * rollout_steps // num_envs,
-            deterministic=True,
-            render=False,
-        )
-        checkpoint_callback = CheckpointCallback(
-            save_freq=20 * rollout_steps // num_envs,
-            save_path=log_dir,
-            name_prefix="rl_model",
-            save_replay_buffer=True,
-            save_vecnormalize=True,
-        )
-        # Train an agent with PPO for args.total_timesteps interactions
-        model.learn(
-            args.total_timesteps,
-            callback=[checkpoint_callback, eval_callback],
-            progress_bar=True,
-        )
-        # Save the final model
-        model.save(osp.join(log_dir, "best_model"))
-
-    # Evaluate the model
-    returns, ep_lens = evaluate_policy(
-        model,
-        eval_env,
-        deterministic=True,
-        render=True,
-        return_episode_rewards=True,
-        n_eval_episodes=10,
-    )
-    print("Returns", returns)
-    print("Episode Lengths", ep_lens)
-    success = np.array(ep_lens) < 50
-    success_rate = success.mean()
-    print("Success Rate:", success_rate)
+    recorded_num = 0
+    obs = env.reset()
+    
+    while recorded_num < record_num:
+        action = policy.predict(obs)
+        obs, reward, done, info = env.step(action)
+        if done == True:
+            record_num += 1
+            obs = env.reset()
+            policy.reset()
 
 
 if __name__ == "__main__":
