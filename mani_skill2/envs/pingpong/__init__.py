@@ -1,1 +1,1 @@
-from .pingpong import PingpongEnv
+from .pingpong import PingPongEnv

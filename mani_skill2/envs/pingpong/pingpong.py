@@ -10,15 +10,11 @@ from mani_skill2.utils.sapien_utils import vectorize_pose
 
 from .base_env import StationaryManipulationEnv
 
-@register_env("Pingpong-v0", max_episode_steps=200)
-class PingpongEnv(StationaryManipulationEnv):
-    goal_thresh = 0.025
-    min_goal_dist = 0.05
-
+@register_env("PingPong-v0", max_episode_steps=200)
+class PingPongEnv(StationaryManipulationEnv):
     def __init__(self, *args, ball_radius=0.02, size_range=0.0, **kwargs):
         self.size_range = size_range
         self.ball_radius = ball_radius
-        self.last_obj_to_goal_dist = 0
         super().__init__(*args, **kwargs)
 
     def _load_actors(self):
@@ -45,8 +41,7 @@ class PingpongEnv(StationaryManipulationEnv):
 
     def _get_obs_extra(self) -> OrderedDict:
         obs = OrderedDict(
-            tcp_pose=vectorize_pose(self.tcp.pose),
-
+            tcp_pos=self.tcp.pose.p
         )
         if self._obs_mode in ["state", "state_dict"]:
             obj_pos = self.obj.pose.p
@@ -56,12 +51,9 @@ class PingpongEnv(StationaryManipulationEnv):
                 obj_pos[0:2] += xy_noise
                 tcp_to_obj_pos[0:2] += xy_noise
             obs.update(
-                tcp_to_goal_pos=self.goal_pos - self.tcp.pose.p,
                 obj_pose=obj_pos,
                 tcp_to_obj_pos=tcp_to_obj_pos,
             )
-            if self.ee_move_independently:
-                obs.update(reached=float(self.check_reached()),)
         return obs
 
     def generate_noise_for_pos(self, size):
@@ -120,17 +112,12 @@ class PingpongEnv(StationaryManipulationEnv):
     def render(self, mode="human"):
         # NOTE(chichu) It seems a bug appears here. Mode would be automatically set to rgb_array if the parameter is 'human',
         # but it won't if the parameter is 'cameras'.
-        if mode in ["human", "rgb_array"]:
-            self.goal_site.unhide_visual()
-            ret = super().render(mode=mode)
-            self.goal_site.hide_visual()
-        else:
-            ret = super().render(mode=mode)
+        ret = super().render(mode=mode)
         return ret
 
     def get_state(self) -> np.ndarray:
         state = super().get_state()
-        return np.hstack([state, self.goal_pos])
+        return np.hstack([state])
 
     def set_state(self, state):
         self.goal_pos = state[-3:]

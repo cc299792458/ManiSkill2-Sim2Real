@@ -16,7 +16,7 @@ from mani_skill2.utils.generate_sim_params import generate_sim_params
 
                     
 def parse_args():
-    env_id = "PickCube-v3"
+    env_id = "PingPong-v0"
     parser = argparse.ArgumentParser(description="Use Stable-Baselines-3 PPO to train ManiSkill2 tasks")
     #####----- PPO Args -----#####
     parser.add_argument("-e", "--env-id", type=str, default=env_id)
@@ -36,7 +36,6 @@ def parse_args():
     parser.add_argument("--tensorboard-log-dir", type=str, default="/chichu-slow-vol/tensorboard/", help="Dir of tensorboard log")
     #####----- Env Args -----#####
     parser.add_argument("--ee-type", type=str, default='reduced_gripper', help="End effector type") # 'reduced_gripper', 'full_gripper'
-    parser.add_argument("--ee-move-independently", action="store_true", help="One action can only move arm or ee in one time.")
     parser.add_argument("--enable-tgs", action="store_true", help="Enable tgs or not")
     parser.add_argument("--obs-noise", type=float, default=0.0, help="Observation noise")
     parser.add_argument("--ee-move-first", type=bool, default=True, help="In one action, finish moving ee first, then move the arm." )
@@ -66,7 +65,6 @@ def main():
     low_level_control_mode = 'position'
     motion_data_type = ['qpos', 'qvel', 'qacc', '(qf - passive_qf)', 'qf', 'ee_pos']
     ee_type = args.ee_type 
-    ee_move_independently = args.ee_move_independently
     enable_tgs = args.enable_tgs
     obs_noise = args.obs_noise
     ee_move_first =  args.ee_move_first
@@ -94,7 +92,6 @@ def main():
                 motion_data_type=motion_data_type,
                 sim_params = generate_sim_params(),
                 ee_type=ee_type,
-                ee_move_independently=ee_move_independently,
                 enable_tgs=enable_tgs,
                 obs_noise=obs_noise,
                 ee_move_first=ee_move_first,

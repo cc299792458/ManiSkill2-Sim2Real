@@ -64,7 +64,6 @@ class BaseEnv(gym.Env):
         render_by_sim_step (bool): if render by simulation step or not. 
         paused (bool): if paused viewer before a episode starts. 
         ee_type (str): reduced gripper or full gripper now. 
-        ee_move_independently (bool): if lock the arm when the end effector moves, which means arm and end effector won't move simultaneously. 
 
     Note:
         `camera_cfgs` is used to update environement-specific camera configurations.
@@ -105,7 +104,7 @@ class BaseEnv(gym.Env):
         motion_data_type: List[str] = ['qpos', 'qvel', 'qacc', '(qf - passive_qf)', 'qf', 'ee_pos'],
         sim_params: dict = generate_sim_params(),
         ee_type: str = 'reduced_gripper',
-        ee_move_independently: bool = False,
+        # ee_move_independently: bool = False,
         enable_tgs: bool = True,
         obs_noise: float = 0.005,
         ee_move_first: bool = True,
@@ -190,7 +189,7 @@ class BaseEnv(gym.Env):
 
         # End Effector type
         self.ee_type = ee_type
-        self.ee_move_independently = ee_move_independently
+        # self.ee_move_independently = ee_move_independently
         self._config_ee_move_first(ee_move_first)
 
         # NOTE(jigu): Agent and camera configurations should not change after initialization.
@@ -451,7 +450,7 @@ class BaseEnv(gym.Env):
         self._clear()
 
         self._setup_scene(sim_params=sim_params, enable_tgs=self.enable_tgs)
-        self._load_agent(sim_params=sim_params, ee_type=self.ee_type, ee_move_independently=self.ee_move_independently)
+        self._load_agent(sim_params=sim_params, ee_type=self.ee_type)
         self._load_actors()
         self._load_articulations()
         self._setup_cameras()
@@ -570,8 +569,8 @@ class BaseEnv(gym.Env):
         self._elapsed_steps = 0
         self._time_out = False
         self._ee_constraint_break = False
-        if self.ee_move_independently:
-            self._ee_move = False
+        # if self.ee_move_independently:
+        #     self._ee_move = False
 
         if reconfigure:
             # Reconfigure the scene if assets change
@@ -747,8 +746,8 @@ class BaseEnv(gym.Env):
 
     def get_info(self, **kwargs):
         info = dict(elapsed_steps=self._elapsed_steps, time_out=self._time_out, ee_constraint_break=self._ee_constraint_break)
-        if self.ee_move_independently:
-            info.update(ee_move=self._ee_move)
+        # if self.ee_move_independently:
+        #     info.update(ee_move=self._ee_move)
         info.update(self.evaluate(**kwargs))
         return info
 
@@ -757,8 +756,8 @@ class BaseEnv(gym.Env):
         self._ee_constraint_break = False
         if self.ee_move_first:
             self.ee_last_qpos = self.agent.robot.get_qpos()[-2:]
-        if self.ee_move_independently:
-            self._ee_move = bool(np.clip(action[-1], -1, 1) > 0)
+        # if self.ee_move_independently:
+        #     self._ee_move = bool(np.clip(action[-1], -1, 1) > 0)
 
     def _after_simulation_step(self):
         # Store motion data here.
