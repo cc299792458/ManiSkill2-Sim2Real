@@ -16,9 +16,17 @@ class PickCubeEnv(StationaryManipulationEnv):
     goal_thresh = 0.025
     min_goal_dist = 0.05
 
-    def __init__(self, *args, obj_init_rot_z=True, size_range=0.0, **kwargs):
+    def __init__(self, *args, obj_init_rot_z=True, domain_rand_params, **kwargs):
         self.obj_init_rot_z = obj_init_rot_z
-        self.size_range = size_range
+        if domain_rand_params is not None:
+            self.domain_rand = True
+            self.size_range = domain_rand_params['size_range']
+            self.fric_range = domain_rand_params['fric_range']
+            self.obs_noise = domain_rand_params['obs_noise']
+        else:
+            self.domain_rand = False
+            self.size_range = 0.0
+            self.obs_noise = 0.0
         self.org_half_cube_size = 0.02
         half_cube_size = self.org_half_cube_size
         self.cube_half_size = np.array([half_cube_size] * 3, np.float32)  # (chichu) change the half size of cube from 0.02 to 0.049/2 to align the real cube.
@@ -32,14 +40,19 @@ class PickCubeEnv(StationaryManipulationEnv):
         self.goal_site = self._build_sphere_site(self.goal_thresh)
 
     def _initialize_actors(self):
-        if self.size_range != 0.0:
+        if self.domain_rand:
+            # remove original object
             self._actors.remove(self.obj)
             self._scene.remove_actor(self.obj)
-            random_size = self._episode_rng.uniform(0, self.size_range)
+            # sample properties of new object
+            random_size = self._episode_rng.uniform(-self.size_range, self.size_range)
             half_cube_size = self.org_half_cube_size + random_size
             self.cube_half_size = np.array([half_cube_size] * 3, np.float32)
             self.cube_half_size[2] = self.org_half_cube_size
-            self.obj = self._build_cube(self.cube_half_size)
+            self.friction = self._episode_rng.uniform(self.fric_range[0], self.fric_range[1])
+            physcial_mat = self._scene.create_physical_material(static_friction=self.friction, dynamic_friction=self.friction, restitution=0.0)
+            # create new object
+            self.obj = self._build_cube(self.cube_half_size, physical_material=physcial_mat)
             self._actors.append(self.obj)
 
         xy = self._episode_rng.uniform(-0.1, 0.1, [2])
@@ -82,7 +95,7 @@ class PickCubeEnv(StationaryManipulationEnv):
             obj_pose = vectorize_pose(self.obj.pose)
             tcp_to_obj_pos = self.obj.pose.p - self.tcp.pose.p
             obj_to_goal_pos = self.goal_pos - self.obj.pose.p
-            if self.obs_noise != 0.0:
+            if self.domain_rand:
                 xy_noise = self.generate_noise_for_pos(size=2)
                 obj_pose[0:2] += xy_noise
                 tcp_to_obj_pos[0:2] += xy_noise
@@ -95,8 +108,6 @@ class PickCubeEnv(StationaryManipulationEnv):
                 # Add if the cube is grasped
                 obj_grasped=float(self.agent.check_grasp(self.obj)),
             )
-            if self.ee_move_independently:
-                obs.update(reached=float(self.check_reached()),)
         return obs
 
     def generate_noise_for_pos(self, size):

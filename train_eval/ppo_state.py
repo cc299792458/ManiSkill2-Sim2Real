@@ -16,7 +16,7 @@ from mani_skill2.utils.generate_sim_params import generate_sim_params
 
                     
 def parse_args():
-    env_id = "PingPong-v0"
+    env_id = "PickCube-v3"
     parser = argparse.ArgumentParser(description="Use Stable-Baselines-3 PPO to train ManiSkill2 tasks")
     #####----- PPO Args -----#####
     parser.add_argument("-e", "--env-id", type=str, default=env_id)
@@ -37,9 +37,7 @@ def parse_args():
     #####----- Env Args -----#####
     parser.add_argument("--ee-type", type=str, default='reduced_gripper', help="End effector type") # 'reduced_gripper', 'full_gripper'
     parser.add_argument("--enable-tgs", action="store_true", help="Enable tgs or not")
-    parser.add_argument("--obs-noise", type=float, default=0.0, help="Observation noise")
     parser.add_argument("--ee-move-first", type=bool, default=True, help="In one action, finish moving ee first, then move the arm." )
-    parser.add_argument("--size-range", type=float, default=0.0, help="Range for object's size." )
 
     args = parser.parse_args()
     return args
@@ -66,9 +64,8 @@ def main():
     motion_data_type = ['qpos', 'qvel', 'qacc', '(qf - passive_qf)', 'qf', 'ee_pos']
     ee_type = args.ee_type 
     enable_tgs = args.enable_tgs
-    obs_noise = args.obs_noise
     ee_move_first =  args.ee_move_first
-    size_range = args.size_range
+    domain_rand_params = dict(size_range=0.005, fric_range=[0.5, 1.5], obs_noise=0.005)
     #####----- Debug Args -----#####
     render_mode = 'cameras' # 'human', 'cameras'    
     fix_task_configuration = False
@@ -93,13 +90,12 @@ def main():
                 sim_params = generate_sim_params(),
                 ee_type=ee_type,
                 enable_tgs=enable_tgs,
-                obs_noise=obs_noise,
                 ee_move_first=ee_move_first,
-                size_range=size_range,
                 #####----- Debug Args -----#####
                 fix_task_configuration = fix_task_configuration,
                 render_by_sim_step = render_by_sim_step,
                 paused=paused,
+                domain_rand_params=domain_rand_params,
             )
             # For training, we regard the task as a continuous task with infinite horizon.
             # you can use the ContinuousTaskWrapper here for that

@@ -104,9 +104,7 @@ class BaseEnv(gym.Env):
         motion_data_type: List[str] = ['qpos', 'qvel', 'qacc', '(qf - passive_qf)', 'qf', 'ee_pos'],
         sim_params: dict = generate_sim_params(),
         ee_type: str = 'reduced_gripper',
-        # ee_move_independently: bool = False,
         enable_tgs: bool = True,
-        obs_noise: float = 0.005,
         ee_move_first: bool = True,
         fix_task_configuration: bool = False,
         render_by_sim_step: bool = False,
@@ -210,9 +208,6 @@ class BaseEnv(gym.Env):
 
         # Enable tgs or not
         self.enable_tgs = enable_tgs
-
-        # Observation noise
-        self.obs_noise = obs_noise
         
         # Motion Profile
         self._motion_data_type = motion_data_type
@@ -226,7 +221,7 @@ class BaseEnv(gym.Env):
 
         # NOTE(jigu): `seed` is deprecated in the latest gym.
         # Use a fixed seed to initialize to enhance determinism
-        self.seed(2022)
+        self.seed(2023)
         obs = self.reset(reconfigure=True)
         self.observation_space = convert_observation_to_space(obs)
         if self._obs_mode == "image":
@@ -569,8 +564,6 @@ class BaseEnv(gym.Env):
         self._elapsed_steps = 0
         self._time_out = False
         self._ee_constraint_break = False
-        # if self.ee_move_independently:
-        #     self._ee_move = False
 
         if reconfigure:
             # Reconfigure the scene if assets change

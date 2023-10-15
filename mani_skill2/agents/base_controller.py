@@ -252,32 +252,15 @@ class CombinedController(DictController):
             self.action_space.spaces
         )
 
-    def set_action(self, action: np.ndarray, ee_move_independently: bool):
-        if ee_move_independently == False:
-            # Sanity check
-            action_dim = self.action_space.shape[0]
-            assert action.shape == (action_dim,), (action.shape, action_dim)
+    def set_action(self, action: np.ndarray):
+        # Sanity check
+        action_dim = self.action_space.shape[0]
+        assert action.shape == (action_dim,), (action.shape, action_dim)
 
-            for uid, controller in self.controllers.items():
-                start, end = self.action_mapping[uid]
-                controller.set_action(action[start:end])
-        else:
-            action_dim = self.action_space.shape[0] + 1
-            assert action.shape == (action_dim,), (action.shape, action_dim)
-            
-            # choose arm moves or gripper moves.
-            # ee_move_action > 0, ee moves; ee_move_action < 0, arm moves.
-            ee_move_action = bool(np.clip(action[-1], -1, 1) > 0)
-            for uid, controller in self.controllers.items():
-                if uid == 'arm':
-                    controller.activation = False
-                if ee_move_action and uid == 'arm':
-                    continue
-                elif (not ee_move_action) and uid == 'gripper':
-                    continue
-                start, end = self.action_mapping[uid]
-                controller.set_action(action[start:end])
-
+        for uid, controller in self.controllers.items():
+            start, end = self.action_mapping[uid]
+            controller.set_action(action[start:end])
+        
     def get_target_qpos(self):
         target_qpos = []
         for uid, controller in self.controllers.items():

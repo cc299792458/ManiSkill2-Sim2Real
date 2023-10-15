@@ -34,13 +34,15 @@ class StationaryManipulationEnv(BaseEnv):
         name="cube",
         static=False,
         render_material: sapien.RenderMaterial = None,
+        physical_material: sapien.PhysicalMaterial = None,
     ):
         if render_material is None:
             render_material = self._renderer.create_material()
             render_material.set_base_color(np.hstack([color, 1.0]))
-
+        if physical_material is None:
+            physical_material = self._scene.create_physical_material(static_friction=1.0, dynamic_friction=1.0, restitution=0.0)
         builder = self._scene.create_actor_builder()
-        builder.add_box_collision(half_size=half_size)
+        builder.add_box_collision(half_size=half_size, material=physical_material)
         builder.add_box_visual(half_size=half_size, material=render_material)
         if static:
             return builder.build_static(name)
@@ -63,8 +65,8 @@ class StationaryManipulationEnv(BaseEnv):
     def _load_agent(self, sim_params, ee_type):
         agent_cls: Type[XArm7] = self.SUPPORTED_ROBOTS[self.robot_uid]
         self.agent = agent_cls(
-            self._scene, self._control_freq, self._control_mode, config=self._agent_cfg, sim_params=sim_params, 
-            ee_type=ee_type,
+            self._scene, self._control_freq, self._control_mode, config=self._agent_cfg, 
+            sim_params=sim_params, ee_type=ee_type,
         )
         self.tcp: sapien.Link = get_entity_by_name(
             self.agent.robot.get_links(), self.agent.config.ee_link_name

@@ -203,7 +203,7 @@ class BaseAgent:
         self.set_control_mode(self._default_control_mode)
 
     def set_action(self, action):
-        self.controller.set_action(action, self.ee_move_independently)
+        self.controller.set_action(action)
 
     def get_target_qpos(self):
         return self.controller.get_target_qpos()
