@@ -34,19 +34,19 @@ class PickCubeV3HandcraftPolicy:
         return sapien_pose
     
     def _to_tcp_frame(self, action, quat=None):
-        if action.shape[0] == 3:
-            convert_action = np.zeros([3])
-            convert_action[0] = action[1]
-            convert_action[1] = action[0]
-            convert_action[2] = -action[2]
+        # if action.shape[0] == 3:
+        #     convert_action = np.zeros([3])
+        #     convert_action[0] = action[1]
+        #     convert_action[1] = action[0]
+        #     convert_action[2] = -action[2]
 
-        if quat is not None:
-            w, x, y, z = quat
-            rot_mat = np.array([[1 - 2*y**2 - 2*z**2, 2*x*y - 2*w*z, 2*x*z + 2*w*y],
-                                [2*x*y + 2*w*z, 1 - 2*x**2 - 2*z**2, 2*y*z - 2*w*x],
-                                [2*x*z - 2*w*y, 2*y*z + 2*w*x, 1 - 2*x**2 - 2*y**2]])
+        # if quat is not None:
+        w, x, y, z = quat
+        rot_mat = np.array([[1 - 2*y**2 - 2*z**2, 2*x*y - 2*w*z, 2*x*z + 2*w*y],
+                            [2*x*y + 2*w*z, 1 - 2*x**2 - 2*z**2, 2*y*z - 2*w*x],
+                            [2*x*z - 2*w*y, 2*y*z + 2*w*x, 1 - 2*x**2 - 2*y**2]])
 
-            convert_action = rot_mat @ action
+        convert_action = rot_mat @ action
 
         return convert_action
         
@@ -99,15 +99,13 @@ class PickCubeV3HandcraftPolicy:
                 action[-1] = 1.0
             else:
                 self.stage = 2
-                if np.linalg.norm(obj_to_goal_pos) > 0.005:
-                    # have bug here, the action should be represented in tcp's frame
-                    action[0:3] = np.clip(self._to_tcp_frame(obj_to_goal_pos, tcp_pose.q) * 10, -0.5, 0.5)
+                # if np.linalg.norm(obj_to_goal_pos) > 0.005:
+                action[0:3] = np.clip(self._to_tcp_frame(obj_to_goal_pos, tcp_pose.q) * 10, -0.5, 0.5)
             # elif self.action_step == 2:
             #     action[-1] = -0.5
         else:
-            if np.linalg.norm(obj_to_goal_pos) > 0.005:
-                # have bug here, the action should be represented in tcp's frame
-                action[0:3] = np.clip(self._to_tcp_frame(obj_to_goal_pos, tcp_pose.q) * 10, -0.5, 0.5)
+            # if np.linalg.norm(obj_to_goal_pos) > 0.005:
+            action[0:3] = np.clip(self._to_tcp_frame(obj_to_goal_pos, tcp_pose.q) * 10, -0.5, 0.5)
 
 
         self.action_step += 1

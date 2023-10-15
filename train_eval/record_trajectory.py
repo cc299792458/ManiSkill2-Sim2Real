@@ -59,11 +59,8 @@ def main():
     low_level_control_mode = 'position'
     motion_data_type = ['qpos', 'qvel', 'qacc', '(qf - passive_qf)', 'qf', 'ee_pos']
     ee_type = args.ee_type 
-    ee_move_independently = args.ee_move_independently
     enable_tgs = True
-    obs_noise = args.obs_noise
     ee_move_first =  args.ee_move_first
-    size_range = args.size_range
     #####----- Debug Args -----#####
     render_mode = 'cameras' # 'human', 'cameras'    
     fix_task_configuration = False
@@ -87,11 +84,9 @@ def main():
                 motion_data_type=motion_data_type,
                 sim_params = generate_sim_params(),
                 ee_type=ee_type,
-                ee_move_independently=ee_move_independently,
                 enable_tgs=enable_tgs,
-                obs_noise=obs_noise,
                 ee_move_first=ee_move_first,
-                size_range=size_range,
+                domain_rand_params=None,
                 #####----- Debug Args -----#####
                 fix_task_configuration = fix_task_configuration,
                 render_by_sim_step = render_by_sim_step,
@@ -126,7 +121,7 @@ def main():
         action = policy.predict(obs)
         obs, reward, done, info = env.step(action)
         if done == True:
-            record_num += 1
+            recorded_num += 1
             obs = env.reset()
             policy.reset()
 

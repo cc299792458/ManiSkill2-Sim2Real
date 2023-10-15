@@ -181,15 +181,7 @@ class BaseAgent:
                 }
             )
         else:
-            if self.ee_move_independently == False:
-                return self.controller.action_space
-            else:
-                # NOTE(chichu): extra dim is used to judge if ee moves or arm moves
-                original_action_space: spaces.Box = self.controller.action_space
-                low = original_action_space.low[0]
-                high = original_action_space.high[0]
-                dim = original_action_space.shape[0]
-                return spaces.Box(low=low, high=high, shape=(dim+1,))
+            return self.controller.action_space
 
     def reset(self, init_qpos=None):
         if init_qpos is not None:

@@ -61,8 +61,16 @@ class UniformSampler:
 
 @register_env("StackCube-v0", max_episode_steps=200)
 class StackCubeEnv(StationaryManipulationEnv):
-    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0, size_range=0.0, **kwargs):
-        self.size_range=size_range
+    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0, domain_rand_params, **kwargs):
+        if domain_rand_params is not None:
+            self.domain_rand = True
+            self.size_range = domain_rand_params['size_range']
+            self.obs_noise = domain_rand_params['obs_noise']
+            self.fric_range = domain_rand_params['fric_range']
+        else:
+            self.domain_rand = False
+            self.size_range = 0.0
+            self.obs_noise = 0.0
         super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, **kwargs)
 
     def _get_default_scene_config(self, sim_params, enable_tgs):
