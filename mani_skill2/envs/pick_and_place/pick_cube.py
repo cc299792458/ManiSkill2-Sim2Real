@@ -258,8 +258,7 @@ class PickCubeEnv_v3(PickCubeEnv):
     def compute_dense_reward(self, info, **kwargs):
         reward = 0.0
         if info["success"]:
-            reward += 6
-            return reward
+            reward += 1
         if info["time_out"]:
             reward -= 3
         # if info["ee_constraint_break"]:
@@ -310,7 +309,7 @@ class PickCubeEnv_v3(PickCubeEnv):
                 static_reward = 1 - np.tanh(5 * np.linalg.norm(qvel))
                 reward += static_reward
 
-        return reward
+        return reward / 7
 
 
 @register_env("LiftCube-v0", max_episode_steps=200)
