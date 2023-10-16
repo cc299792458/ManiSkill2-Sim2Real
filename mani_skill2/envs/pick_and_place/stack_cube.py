@@ -505,4 +505,4 @@ class StackCubeEnv_v3(StackCubeEnv):
         if info["time_out"]:
             reward -= 3
 
-        return reward
+        return reward / 6
