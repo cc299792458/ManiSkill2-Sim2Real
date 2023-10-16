@@ -71,6 +71,7 @@ class StackCubeEnv(StationaryManipulationEnv):
             self.domain_rand = False
             self.size_range = 0.0
             self.obs_noise = 0.0
+        self.org_half_cube_size = 0.02
         super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, **kwargs)
 
     def _get_default_scene_config(self, sim_params, enable_tgs):
@@ -88,6 +89,21 @@ class StackCubeEnv(StationaryManipulationEnv):
         )
 
     def _initialize_actors(self):
+        if self.domain_rand:
+            # remove original object
+            self._actors.remove(self.cubeA)
+            self._scene.remove_actor(self.cubeA)
+            # sample properties of new object
+            random_size = self._episode_rng.uniform(-self.size_range, self.size_range)
+            half_cube_size = self.org_half_cube_size + random_size
+            self.cube_half_size = np.array([half_cube_size] * 3, np.float32)
+            self.cube_half_size[2] = self.org_half_cube_size
+            self.friction = self._episode_rng.uniform(self.fric_range[0], self.fric_range[1])
+            physcial_mat = self._scene.create_physical_material(static_friction=self.friction, dynamic_friction=self.friction, restitution=0.0)
+            # create new object
+            self.cubeA = self._build_cube(self.cube_half_size, physical_material=physcial_mat)
+            self._actors.append(self.cubeA)
+        
         # decrease region size.
         # xy = self._episode_rng.uniform(-0.05, 0.05, [2])
         region = [[-0.075, -0.075], [0.075, 0.075]]
@@ -356,17 +372,34 @@ class StackCubeEnv_v2(StackCubeEnv):
     
 @register_env("StackCube-v3", max_episode_steps=50)
 class StackCubeEnv_v3(StackCubeEnv):
+    def generate_noise_for_pos(self, size):
+        noise = np.random.uniform(-self.obs_noise, self.obs_noise, size=size)
+        return noise
+
     def _get_obs_extra(self):
         obs = OrderedDict(
             tcp_pose=vectorize_pose(self.tcp.pose),
         )
+        cubeA_pose = vectorize_pose(self.cubeA.pose)
+        cubeB_pose = vectorize_pose(self.cubeB.pose)
+        tcp_to_cubeA_pos = self.cubeA.pose.p - self.tcp.pose.p
+        tcp_to_cubeB_pos = self.cubeB.pose.p - self.tcp.pose.p
+        cubeA_to_cubeB_pos = self.cubeB.pose.p - self.cubeA.pose.p
+        if self.domain_rand:
+            cubeA_xy_noise = self.generate_noise_for_pos(size=2)
+            cubeB_xy_noise = self.generate_noise_for_pos(size=2)
+            cubeA_pose[0:2] += cubeA_xy_noise
+            cubeB_pose[0:2] += cubeB_xy_noise
+            tcp_to_cubeA_pos[0:2] += cubeA_xy_noise
+            tcp_to_cubeB_pos[0:2] += cubeB_xy_noise
+            cubeA_to_cubeB_pos[0:2] += (cubeB_xy_noise - cubeA_xy_noise)
         if self._obs_mode in ["state", "state_dict"]:
             obs.update(
-                cubeA_pose=vectorize_pose(self.cubeA.pose),
-                cubeB_pose=vectorize_pose(self.cubeB.pose),
-                tcp_to_cubeA_pos=self.cubeA.pose.p - self.tcp.pose.p,
-                tcp_to_cubeB_pos=self.cubeB.pose.p - self.tcp.pose.p,
-                cubeA_to_cubeB_pos=self.cubeB.pose.p - self.cubeA.pose.p,
+                cubeA_pose=cubeA_pose,
+                cubeB_pose=cubeB_pose,
+                tcp_to_cubeA_pos=tcp_to_cubeA_pos,
+                tcp_to_cubeB_pos=tcp_to_cubeB_pos,
+                cubeA_to_cubeB_pos=cubeA_to_cubeB_pos,
                 # Add some binary information to facilitate training.
                 cubeA_vel=np.linalg.norm(self.cubeA.velocity),
                 cubeA_ang_vel=np.linalg.norm(self.cubeA.angular_velocity),
