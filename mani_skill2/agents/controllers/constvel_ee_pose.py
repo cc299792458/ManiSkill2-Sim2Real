@@ -42,6 +42,10 @@ class ConstVelEEPoseController(PDEEPoseController):
         self.interpolate_step = interpolate_step
         self._initialize_velocity_ik()
 
+    def reset(self):
+        super().reset()
+        self.target_qvel = np.zeros_like(self.qpos)
+
     def _initialize_velocity_ik(self):
         # NOTE(chichu): Hard-coded with xarm
         self.start_joint_name = self.articulation.get_joints()[1].get_name()

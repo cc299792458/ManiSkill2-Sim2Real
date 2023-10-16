@@ -16,7 +16,7 @@ from mani_skill2.utils.generate_sim_params import generate_sim_params
 
                     
 def parse_args():
-    env_id = "PickCube-v3"
+    env_id = "PegInsertionSide-v2"
     parser = argparse.ArgumentParser(description="Use Stable-Baselines-3 PPO to train ManiSkill2 tasks")
     #####----- PPO Args -----#####
     parser.add_argument("-e", "--env-id", type=str, default=env_id)
@@ -33,7 +33,8 @@ def parse_args():
     parser.add_argument("--log-dir", type=str, default="logs/PPO/", help="Path for where logs, checkpoints, and videos are saved")
     parser.add_argument("--pre-trained", action="store_true", help="If using pre-trained model or not")
     parser.add_argument("--pre-trained-dir", type=str, default="ManiSkill2-Sim2Real/train_eval/pre_trained/",help="Dir of pretrained model")
-    parser.add_argument("--tensorboard-log-dir", type=str, default="/chichu-slow-vol/tensorboard/", help="Dir of tensorboard log")
+    parser.add_argument("--tensorboard-log-dir", type=str, default="logs/PPO/", help="Dir of tensorboard log")
+    # parser.add_argument("--tensorboard-log-dir", type=str, default="/chichu-slow-vol/tensorboard/", help="Dir of tensorboard log")
     #####----- Env Args -----#####
     parser.add_argument("--ee-type", type=str, default='reduced_gripper', help="End effector type") # 'reduced_gripper', 'full_gripper'
     parser.add_argument("--enable-tgs", action="store_true", help="Enable tgs or not")
