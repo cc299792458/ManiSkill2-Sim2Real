@@ -660,7 +660,7 @@ class BaseEnv(gym.Env):
             raise TypeError(type(action))
         
         # NOTE(chichu): add low level control mode choices here, supporting position control and impedence control.
-        self._before_control_step(action)
+        self._before_control_step()
         if self.low_level_control_mode == 'position':
             if self.ee_move_first == True:
                 self.move_ee()
@@ -744,13 +744,11 @@ class BaseEnv(gym.Env):
         info.update(self.evaluate(**kwargs))
         return info
 
-    def _before_control_step(self, action):
+    def _before_control_step(self):
         self._reset_motion_profile_storage()
         self._ee_constraint_break = False
-        if self.ee_move_first:
+        if self.low_level_control_mode == 'position' and self.ee_move_first:
             self.ee_last_qpos = self.agent.robot.get_qpos()[-2:]
-        # if self.ee_move_independently:
-        #     self._ee_move = bool(np.clip(action[-1], -1, 1) > 0)
 
     def _after_simulation_step(self):
         # Store motion data here.

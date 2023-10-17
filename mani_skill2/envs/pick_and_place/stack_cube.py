@@ -504,14 +504,14 @@ class StackCubeEnv_v3(StackCubeEnv):
         
         return (reward + static_reward) / 2.0
     
-    def unrotate_reward(self):
-        cubeA_quat = self.cubeA.pose.q
-        cubeA_euler = np.abs(quat2euler(cubeA_quat))
+    # def unrotate_reward(self):
+    #     cubeA_quat = self.cubeA.pose.q
+    #     cubeA_euler = np.abs(quat2euler(cubeA_quat))
 
-        roll, pitch = cubeA_euler[0], cubeA_euler[1]
-        unrotate_reward = 1 - np.clip((roll+pitch)/(np.pi/4), a_min=0, a_max=1)
+    #     roll, pitch = cubeA_euler[0], cubeA_euler[1]
+    #     unrotate_reward = 1 - np.clip((roll+pitch)/(np.pi/4), a_min=0, a_max=1)
 
-        return unrotate_reward
+    #     return unrotate_reward
 
     def compute_dense_reward(self, info, **kwargs):
 
@@ -528,15 +528,15 @@ class StackCubeEnv_v3(StackCubeEnv):
         else:
             reward = self.reaching_reward() + self.grasp_rotate_reward()
 
-        if self.agent.check_grasp(self.cubeA):
-            reward += self.unrotate_reward()
+        # if self.agent.check_grasp(self.cubeA):
+        #     reward += self.unrotate_reward()
 
-        cubeB_vel_penalty = np.linalg.norm(self.cubeB.velocity) + \
+        cubeB_vel_penalty = 10 * np.linalg.norm(self.cubeB.velocity) + \
                         np.linalg.norm(self.cubeB.angular_velocity)
-        reward -= cubeB_vel_penalty
+        reward += 1 - np.tanh(cubeB_vel_penalty)
 
         # reward = reward - 9.0
         if info["time_out"]:
-            reward -= 3
+            reward = -3
 
-        return reward / 6
+        return np.clip(reward / 7, a_min=-1, a_max=1)

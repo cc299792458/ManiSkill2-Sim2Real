@@ -16,14 +16,14 @@ from mani_skill2.utils.generate_sim_params import generate_sim_params
 
                     
 def parse_args():
-    env_id = "PegInsertionSide-v2"
+    env_id = "PickCube-v3"
     parser = argparse.ArgumentParser(description="Use Stable-Baselines-3 PPO to train ManiSkill2 tasks")
     #####----- PPO Args -----#####
     parser.add_argument("-e", "--env-id", type=str, default=env_id)
     parser.add_argument("-n", "--n-envs", type=int, default=16, help="Number of parallel envs to run.")
     parser.add_argument("--train", action="store_true", help="Whether to train the policy")
     parser.add_argument("--model-path", type=str, help="Path to sb3 model for evaluation")
-    parser.add_argument("--seed", type=int, help="Random seed to initialize training with",)
+    parser.add_argument("--seed", type=int, help="Random seed to initialize training with")
     parser.add_argument("--max-episode-steps", type=int, default=100, help="Max steps per episode before truncating them")
     parser.add_argument("--total-timesteps", type=int, default=8_000_000, help="Total timesteps for training")
     parser.add_argument("--rollout-steps", type=int, default=4000, help="Rollout steps for PPO." )    # 10000
@@ -61,7 +61,7 @@ def main():
     obs_mode = "state"
     reward_mode = "dense"
     control_mode = "constvel_ee_delta_pose"   # "pd_ee_delta_pose", "constvel_ee_delta_pose"
-    low_level_control_mode = 'position'
+    low_level_control_mode = 'position' # position, impedance
     motion_data_type = ['qpos', 'qvel', 'qacc', '(qf - passive_qf)', 'qf', 'ee_pos']
     ee_type = args.ee_type 
     enable_tgs = args.enable_tgs
