@@ -14,7 +14,7 @@ import mani_skill2.envs
 from mani_skill2.utils.wrappers import RecordEpisode, SuccessInfoWrapper, ContinuousTaskWrapper
 from mani_skill2.utils.generate_sim_params import generate_sim_params
 
-from mani_skill2.utils.handcraft_policy import PickCubeV3HandcraftPolicy
+from mani_skill2.utils.handcraft_policy import *
                     
 def parse_args():
     env_id = "PickCube-v3"
@@ -112,7 +112,8 @@ def main():
 
     env = make_env(env_id, record_dir=record_dir)()
     env.seed(args.seed)
-    policy = PickCubeV3HandcraftPolicy()
+    # policy = PickCubeV3HandcraftPolicy()
+    policy = PegInsertionSideV2HandcraftPolicy()
 
     recorded_num = 0
     obs = env.reset()

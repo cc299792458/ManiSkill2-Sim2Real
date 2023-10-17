@@ -718,6 +718,18 @@ class PegInsertionSideEnv_v1(PegInsertionSideEnv):
 @register_env("PegInsertionSide-v2", max_episode_steps=50)
 class PegInsertionSideEnv_v2(PegInsertionSideEnv):
     
+    def _get_obs_extra(self) -> OrderedDict:
+        obs = OrderedDict(tcp_pose=vectorize_pose(self.tcp.pose))
+        if self._obs_mode in ["state", "state_dict"]:
+            obs.update(
+                peg_pose=vectorize_pose(self.peg.pose),
+                box_hole_pose=vectorize_pose(self.box_hole_pose),
+                tcp_to_peg_pos=self.peg.pose.p - self.tcp.pose.p,
+                peg_to_box_hole_pos=self.box_hole_pose.p - self.peg.pose.p,
+                peg_is_grasped=float(self.agent.check_grasp(self.peg)),
+            )
+        return obs
+
     def compute_dense_reward(self, info, **kwargs):
         reward = 0.0
 
