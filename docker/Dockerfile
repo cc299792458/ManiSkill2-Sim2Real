@@ -47,7 +47,7 @@ RUN conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3 -c pytorc
 RUN pip install pytorch3d 
 RUN pip install ninja
 COPY requirements.py /opt/conda/lib/python3.8/site-packages/wheel/vendored/packaging/requirements.py
-RUN git clone https://github.com/cc299792458/ManiSkill2-Sim2Real.git # domain randomize stack cube
+RUN git clone https://github.com/cc299792458/ManiSkill2-Sim2Real.git # clip return of stackcube
 RUN cd ManiSkill2-Sim2Real && pip install -e .
 RUN rm -d ManiSkill2-Sim2Real/ManiSkill2-Learn
 RUN git clone https://github.com/cc299792458/ManiSkill2-Learn.git # change evaluation part

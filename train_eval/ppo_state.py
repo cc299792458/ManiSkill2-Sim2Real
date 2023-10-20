@@ -60,8 +60,8 @@ def main():
     #####----- Env Args -----#####
     obs_mode = "state"
     reward_mode = "dense"
-    control_mode = "constvel_ee_delta_pose"   # "pd_ee_delta_pose", "constvel_ee_delta_pose"
-    low_level_control_mode = 'position' # position, impedance
+    control_mode = "pd_ee_delta_pose"   # "pd_ee_delta_pose", "constvel_ee_delta_pose"
+    low_level_control_mode = 'impedance' # position, impedance
     motion_data_type = ['qpos', 'qvel', 'qacc', '(qf - passive_qf)', 'qf', 'ee_pos']
     ee_type = args.ee_type 
     enable_tgs = args.enable_tgs

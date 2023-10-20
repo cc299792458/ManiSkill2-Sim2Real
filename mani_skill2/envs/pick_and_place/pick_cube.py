@@ -64,8 +64,8 @@ class PickCubeEnv(StationaryManipulationEnv):
             q = euler2quat(0, 0, ori)
         # NOTE(chichu): fixed to a certain pose when evaluate on real robot with simulation.
         if self.fix_task_configuration:
-            xyz = np.array([0.05, -0.03, self.cube_half_size[2]])
-            ori = np.pi * 2 / 3
+            xyz = np.array([0.0, 0.0, self.cube_half_size[2]])
+            ori = 0.0
             q = euler2quat(0, 0, ori)
         self.obj.set_pose(Pose(xyz, q))
 
@@ -289,11 +289,11 @@ class PickCubeEnv_v3(PickCubeEnv):
         is_grasped = self.agent.check_grasp(self.obj) # remove max_angle=30 yeilds much better performance
         if is_grasped:
             reward += 1
-            #####----- Rotate reward -----#####
-            obj_quat = self.obj.pose.q
-            obj_euler = np.abs(quat2euler(obj_quat))
-            obj_euler_xy = (obj_euler[0]+obj_euler[1])
-            reward += (1 - np.tanh(obj_euler_xy)) / 2
+            # #####----- Rotate reward -----#####
+            # obj_quat = self.obj.pose.q
+            # obj_euler = np.abs(quat2euler(obj_quat))
+            # obj_euler_xy = (obj_euler[0]+obj_euler[1])
+            # reward += (1 - np.tanh(obj_euler_xy)) / 2
             #####----- Reach reward 2 -----#####
             obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
             if obj_to_goal_dist < self.last_obj_to_goal_dist:
@@ -309,7 +309,7 @@ class PickCubeEnv_v3(PickCubeEnv):
                 static_reward = 1 - np.tanh(5 * np.linalg.norm(qvel))
                 reward += static_reward
 
-        return reward / 7
+        return reward / 4
 
 
 @register_env("LiftCube-v0", max_episode_steps=200)
