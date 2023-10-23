@@ -31,7 +31,7 @@ class PickCubeEnv(StationaryManipulationEnv):
         self.org_half_cube_size = 0.02
         half_cube_size = self.org_half_cube_size
         self.cube_half_size = np.array([half_cube_size] * 3, np.float32)  # (chichu) change the half size of cube from 0.02 to 0.049/2 to align the real cube.
-        self.last_obj_to_goal_dist = 0
+        # self.last_obj_to_goal_dist = 0
         super().__init__(*args, **kwargs)
 
     def _load_actors(self):
@@ -156,10 +156,10 @@ class PickCubeEnv(StationaryManipulationEnv):
 
         obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
         if is_grasped:
-            if obj_to_goal_dist < self.last_obj_to_goal_dist:
-                place_reward = 1 - np.tanh(5 * obj_to_goal_dist)
-                reward += place_reward
-        self.last_obj_to_goal_dist = obj_to_goal_dist
+            # if obj_to_goal_dist < self.last_obj_to_goal_dist:
+            place_reward = 1 - np.tanh(5 * obj_to_goal_dist)
+            reward += place_reward
+        # self.last_obj_to_goal_dist = obj_to_goal_dist
         
 
         return reward
@@ -296,10 +296,10 @@ class PickCubeEnv_v3(PickCubeEnv):
             # reward += (1 - np.tanh(obj_euler_xy)) / 2
             #####----- Reach reward 2 -----#####
             obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
-            if obj_to_goal_dist < self.last_obj_to_goal_dist:
-                place_reward = 1 - np.tanh(5 * obj_to_goal_dist)
-                reward += place_reward
-            self.last_obj_to_goal_dist = obj_to_goal_dist
+            # if obj_to_goal_dist < self.last_obj_to_goal_dist:
+            place_reward = 1 - np.tanh(5 * obj_to_goal_dist)
+            reward += place_reward
+            # self.last_obj_to_goal_dist = obj_to_goal_dist
             #####----- Static reward -----#####
             if self.check_obj_placed():
                 if self.ee_type == 'reduced_gripper':
