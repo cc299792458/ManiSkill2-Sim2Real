@@ -4,7 +4,7 @@ import os.path as osp
 
 import gym
 import numpy as np
-from stable_baselines3 import PPO
+from stable_baselines3 import SAC
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.utils import set_random_seed
@@ -18,22 +18,20 @@ from mani_skill2.utils.generate_sim_params import generate_sim_params
 def parse_args():
     env_id = "PickCube-v3"
     parser = argparse.ArgumentParser(description="Use Stable-Baselines-3 PPO to train ManiSkill2 tasks")
-    #####----- PPO Args -----#####
+    #####----- SAC Args -----#####
     parser.add_argument("-e", "--env-id", type=str, default=env_id)
     parser.add_argument("-n", "--n-envs", type=int, default=16, help="Number of parallel envs to run.")
-    parser.add_argument("--train", action="store_true", help="Whether to train the policy")
+    parser.add_argument("--train", action="store_true", default=True, help="Whether to train the policy")
     parser.add_argument("--model-path", type=str, help="Path to sb3 model for evaluation")
     parser.add_argument("--seed", type=int, help="Random seed to initialize training with")
     parser.add_argument("--max-episode-steps", type=int, default=50, help="Max steps per episode before truncating them")
     parser.add_argument("--total-timesteps", type=int, default=8_000_000, help="Total timesteps for training")
-    parser.add_argument("--rollout-steps", type=int, default=4000, help="Rollout steps for PPO." )    # 10000
-    parser.add_argument("--batch-size", type=int, default=400, help="Batch size for PPO." )
-    parser.add_argument("--gamma", type=float, default=0.8, help="Gamma for PPO." )
-    parser.add_argument("--n-epochs", type=int, default=20, help="N epochs for PPO." )
-    parser.add_argument("--log-dir", type=str, default="logs/PPO/", help="Path for where logs, checkpoints, and videos are saved")
+    parser.add_argument("--batch-size", type=int, default=1024, help="Batch size for SAC." )
+    parser.add_argument("--gamma", type=float, default=0.95, help="Gamma for SAC." )
+    parser.add_argument("--log-dir", type=str, default="logs/SAC/", help="Path for where logs, checkpoints, and videos are saved")
     parser.add_argument("--pre-trained", action="store_true", help="If using pre-trained model or not")
     parser.add_argument("--pre-trained-dir", type=str, default="ManiSkill2-Sim2Real/train_eval/pre_trained/",help="Dir of pretrained model")
-    parser.add_argument("--tensorboard-log-dir", type=str, default="logs/PPO/", help="Dir of tensorboard log")
+    parser.add_argument("--tensorboard-log-dir", type=str, default="logs/SAC/", help="Dir of tensorboard log")
     # parser.add_argument("--tensorboard-log-dir", type=str, default="/chichu-slow-vol/tensorboard/", help="Dir of tensorboard log")
     #####----- Env Args -----#####
     parser.add_argument("--ee-type", type=str, default='reduced_gripper', help="End effector type") # 'reduced_gripper', 'full_gripper'
@@ -46,14 +44,14 @@ def parse_args():
 
 def main():
     args = parse_args()
-    #####----- PPO Args -----#####
+    #####----- SAC Args -----#####
     env_id = args.env_id
     num_envs = args.n_envs
     max_episode_steps = args.max_episode_steps
-    rollout_steps = args.rollout_steps
+    rollout_steps = 5000
     batch_size = args.batch_size
     gamma = args.gamma
-    n_epochs = args.n_epochs
+    
     log_dir = args.log_dir + env_id
     pre_trained_dir = args.pre_trained_dir + env_id
     tensorboard_log_dir = args.tensorboard_log_dir + env_id
@@ -131,17 +129,14 @@ def main():
 
     # Define the policy configuration and algorithm configuration
     policy_kwargs = dict(net_arch=[256, 256])
-    model = PPO(
+    model = SAC(
         "MlpPolicy", 
         env, 
         policy_kwargs=policy_kwargs,
-        n_steps=rollout_steps // num_envs,  # 10000
         batch_size=batch_size,
-        gamma=gamma,     # default = 0.85
-        gae_lambda=0.9,
-        n_epochs=n_epochs,    # 5
-        tensorboard_log=tensorboard_log_dir,
-        target_kl=0.1,  
+        gamma=gamma,
+        learning_starts=4000,
+        tensorboard_log=tensorboard_log_dir,  
         verbose=1,
     )
 
@@ -175,7 +170,7 @@ def main():
             save_replay_buffer=True,
             save_vecnormalize=True,
         )
-        # Train an agent with PPO for args.total_timesteps interactions
+        # Train an agent with SAC for args.total_timesteps interactions
         model.learn(
             args.total_timesteps,
             callback=[checkpoint_callback, eval_callback],

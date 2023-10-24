@@ -19,7 +19,7 @@ MS1_ENV_IDS = [
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-e", "--env-id", type=str, default="PickSingleYCB-v1")
+    parser.add_argument("-e", "--env-id", type=str, default="PickCube-v3")
     parser.add_argument("-o", "--obs-mode", type=str)
     parser.add_argument("--reward-mode", type=str)
     parser.add_argument("-c", "--control-mode", type=str, default="pd_ee_delta_pose")
@@ -52,6 +52,7 @@ def main():
         obs_mode=args.obs_mode,
         reward_mode=args.reward_mode,
         control_mode=args.control_mode,
+        low_level_control_mode='impedance',
         **args.env_kwargs
     )
 
@@ -86,7 +87,7 @@ def main():
     num_arms = sum("arm" in x for x in env.agent.controller.configs)
     has_gripper = any("gripper" in x for x in env.agent.controller.configs)
     gripper_action = 1
-    EE_ACTION = 1
+    EE_ACTION = 0.1
 
     while True:
         # -------------------------------------------------------------------------- #
