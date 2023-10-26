@@ -269,7 +269,32 @@ class StackCubeEnv_v1(StackCubeEnv):
         return reward
 
 @register_env("StackCube-v2", max_episode_steps=100)
-class StackCubeEnv_v2(StackCubeEnv):
+class StackCubeEnv_v2(StackCubeEnv_v1):
+    def ungrasp_reward(self):
+        gripper_width = (
+            self.agent.robot.get_qlimits()[-1, 1]
+        )  # NOTE: hard-coded with xarm, reduced-gripper
+        # ungrasp reward
+        is_cubeA_grasped = self.agent.check_grasp(self.cubeA)
+        if not is_cubeA_grasped:
+            reward = 1.0
+        else:
+            reward = self.agent.robot.get_qpos()[-1] / gripper_width
+
+        v = np.linalg.norm(self.cubeA.velocity)
+        av = np.linalg.norm(self.cubeA.angular_velocity)
+        static_reward = 1 - np.tanh(v*10 + av)
+        
+        return (reward + static_reward) / 2.0
+    
+    def _get_obs_extra(self) -> OrderedDict:
+        ret = super()._get_obs_extra()
+        ret['is_grasped'] = float(self.agent.check_grasp(self.cubeA))
+        ret['is_cubeA_on_cubeB'] = float(self._check_cubeA_on_cubeB())
+        return ret
+    
+@register_env("StackCube-v3", max_episode_steps=100)
+class StackCubeEnv_v3(StackCubeEnv_v2):
     # decrease sampleing field 
     def _initialize_actors(self):
         xy = self._episode_rng.uniform(-0.05, 0.05, [2])
@@ -287,20 +312,3 @@ class StackCubeEnv_v2(StackCubeEnv):
 
         self.cubeA.set_pose(cubeA_pose)
         self.cubeB.set_pose(cubeB_pose)
-    
-    def ungrasp_reward(self):
-        gripper_width = (
-            self.agent.robot.get_qlimits()[-1, 1]
-        )  # NOTE: hard-coded with xarm, reduced-gripper
-        # ungrasp reward
-        is_cubeA_grasped = self.agent.check_grasp(self.cubeA)
-        if not is_cubeA_grasped:
-            reward = 1.0
-        else:
-            reward = self.agent.robot.get_qpos()[-1] / gripper_width
-
-        v = np.linalg.norm(self.cubeA.velocity)
-        av = np.linalg.norm(self.cubeA.angular_velocity)
-        static_reward = 1 - np.tanh(v*10 + av)
-        
-        return (reward + static_reward) / 2.0
