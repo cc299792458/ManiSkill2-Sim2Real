@@ -267,3 +267,40 @@ class StackCubeEnv_v1(StackCubeEnv):
         # reward = reward - 9.0
 
         return reward
+
+@register_env("StackCube-v2", max_episode_steps=100)
+class StackCubeEnv_v2(StackCubeEnv):
+    # decrease sampleing field 
+    def _initialize_actors(self):
+        xy = self._episode_rng.uniform(-0.05, 0.05, [2])
+        region = [[-0.05, -0.1], [0.05, 0.1]]
+        sampler = UniformSampler(region, self._episode_rng)
+        radius = np.linalg.norm(self.box_half_size[:2]) + 0.001
+        cubeA_xy = xy + sampler.sample(radius, 100)
+        cubeB_xy = xy + sampler.sample(radius, 100, verbose=False)
+
+        cubeA_quat = euler2quat(0, 0, self._episode_rng.uniform(0, 2 * np.pi))
+        cubeB_quat = euler2quat(0, 0, self._episode_rng.uniform(0, 2 * np.pi))
+        z = self.box_half_size[2]
+        cubeA_pose = sapien.Pose([cubeA_xy[0], cubeA_xy[1], z], cubeA_quat)
+        cubeB_pose = sapien.Pose([cubeB_xy[0], cubeB_xy[1], z], cubeB_quat)
+
+        self.cubeA.set_pose(cubeA_pose)
+        self.cubeB.set_pose(cubeB_pose)
+    
+    def ungrasp_reward(self):
+        gripper_width = (
+            self.agent.robot.get_qlimits()[-1, 1]
+        )  # NOTE: hard-coded with xarm, reduced-gripper
+        # ungrasp reward
+        is_cubeA_grasped = self.agent.check_grasp(self.cubeA)
+        if not is_cubeA_grasped:
+            reward = 1.0
+        else:
+            reward = self.agent.robot.get_qpos()[-1] / gripper_width
+
+        v = np.linalg.norm(self.cubeA.velocity)
+        av = np.linalg.norm(self.cubeA.angular_velocity)
+        static_reward = 1 - np.tanh(v*10 + av)
+        
+        return (reward + static_reward) / 2.0

@@ -159,7 +159,34 @@ class PickCubeEnv_v2(PickCubeEnv_v1):
         ret = super()._get_obs_extra()
         ret['is_grasped'] = float(self.agent.check_grasp(self.obj))
         return ret
+    
+@register_env("PickCube-v3", max_episode_steps=100)
+class PickCubeEnv_v2(PickCubeEnv_v2):
+    # decrease sampling fields for both actors and task's goal
+    def _initialize_actors(self):
+        xy = self._episode_rng.uniform(-0.05, 0.05, [2])
+        xyz = np.hstack([xy, self.cube_half_size[2]])
+        q = [1, 0, 0, 0]
+        if self.obj_init_rot_z:
+            ori = self._episode_rng.uniform(0, 2 * np.pi)
+            q = euler2quat(0, 0, ori)
+        self.obj.set_pose(Pose(xyz, q))
 
+    def _initialize_task(self, max_trials=100, verbose=False):
+        obj_pos = self.obj.pose.p
+
+        # Sample a goal position far enough from the object
+        for i in range(max_trials):
+            goal_xy = self._episode_rng.uniform(-0.05, 0.05, [2])
+            goal_z = self._episode_rng.uniform(0, 0.25) + obj_pos[2]
+            goal_pos = np.hstack([goal_xy, goal_z])
+            if np.linalg.norm(goal_pos - obj_pos) > self.min_goal_dist:
+                if verbose:
+                    print(f"Found a valid goal at {i}-th trial")
+                break
+
+        self.goal_pos = goal_pos
+        self.goal_site.set_pose(Pose(self.goal_pos))
 
 @register_env("LiftCube-v0", max_episode_steps=200)
 class LiftCubeEnv(PickCubeEnv):
