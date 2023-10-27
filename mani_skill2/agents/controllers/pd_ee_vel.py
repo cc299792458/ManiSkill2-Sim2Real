@@ -41,7 +41,6 @@ class PDEEVelPosController(BaseController):
 
     def reset(self):
         super().reset()
-        self._step = 0  # counter of simulation steps after action is set
         self._target_qpos = self.qpos
         self._target_qvel = np.zeros_like(self.qpos)
 
@@ -97,3 +96,44 @@ class PDEEVelPosControllerConfig(ControllerConfig):
     normalize_action: bool = True
     controller_cls = PDEEVelPosController
 
+
+class PDEEVelPoseController(PDEEVelPosController):
+    config: "PDEEVelPoseControllerConfig"
+
+    def _initialize_action_space(self):
+        low = np.float32(
+            np.hstack(
+                [
+                    np.broadcast_to(self.config.vel_lower, 3),
+                    np.broadcast_to(-self.config.rot_bound, 3),
+                ]
+            )
+        )
+        high = np.float32(
+            np.hstack(
+                [
+                    np.broadcast_to(self.config.vel_upper, 3),
+                    np.broadcast_to(self.config.rot_bound, 3),
+                ]
+            )
+        )
+        self.action_space = spaces.Box(low, high, dtype=np.float32)
+
+    def _preprocess_action(self, action: np.ndarray):
+        return super()._preprocess_action(action)[:-3]
+
+    
+
+@dataclass
+class PDEEVelPoseControllerConfig(ControllerConfig):
+    vel_lower: Union[float, Sequence[float]]
+    vel_upper: Union[float, Sequence[float]]
+    rot_bound: Union[float, Sequence[float]]
+    limit: Union[float, Sequence[float]]
+    stiffness: Union[float, Sequence[float]]
+    damping: Union[float, Sequence[float]]
+    force_limit: Union[float, Sequence[float]] = 1e10
+    friction: Union[float, Sequence[float]] = 0.0
+    ee_link: str = None
+    normalize_action: bool = True
+    controller_cls = PDEEVelPoseController

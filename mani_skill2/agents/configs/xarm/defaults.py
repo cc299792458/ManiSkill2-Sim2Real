@@ -96,7 +96,18 @@ class XArmDefaultConfig:
             self.arm_joint_names,
             -1.0,
             1.0,
-            np.pi,
+            0.3,
+            self.arm_stiffness,
+            self.arm_damping,
+            self.arm_force_limit,
+            ee_link=self.ee_link_name,
+        )
+        arm_pd_ee_vel_pose = PDEEVelPoseControllerConfig(
+            self.arm_joint_names,
+            -1.0,
+            1.0,
+            1.0,
+            0.3,
             self.arm_stiffness,
             self.arm_damping,
             self.arm_force_limit,
@@ -132,6 +143,9 @@ class XArmDefaultConfig:
             ),
             pd_ee_vel_pos=dict(
                 arm=arm_pd_ee_vel_pos, gripper=gripper_pd_joint_pos
+            ),
+            pd_ee_vel_pose=dict(
+                arm=arm_pd_ee_vel_pose, gripper=gripper_pd_joint_pos
             ),
         )
 
