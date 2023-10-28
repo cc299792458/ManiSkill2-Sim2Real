@@ -4,7 +4,7 @@ import numpy as np
 import mani_skill2.envs 
 
 
-env = gym.make(id="PickCube-v3",
+env = gym.make(id="PickCube-v4",
                control_mode='pd_ee_vel_pos',)
 env.reset()
 env.step(np.array([0.0, 0.0, 0.0, 0.0]))

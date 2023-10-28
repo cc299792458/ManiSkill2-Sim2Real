@@ -161,7 +161,7 @@ class PickCubeEnv_v2(PickCubeEnv_v1):
         return ret
     
 @register_env("PickCube-v3", max_episode_steps=100)
-class PickCubeEnv_v2(PickCubeEnv_v2):
+class PickCubeEnv_v3(PickCubeEnv_v2):
     # decrease sampling fields for both actors and task's goal
     def _initialize_actors(self):
         xy = self._episode_rng.uniform(-0.05, 0.05, [2])
@@ -187,6 +187,14 @@ class PickCubeEnv_v2(PickCubeEnv_v2):
 
         self.goal_pos = goal_pos
         self.goal_site.set_pose(Pose(self.goal_pos))
+
+@register_env("PickCube-v4", max_episode_steps=100)
+class PickCubeEnv_v4(PickCubeEnv_v3):
+    def _get_obs_agent(self):
+        """Get observations from the agent's sensors, e.g., proprioceptive sensors."""
+        proprioception = self.agent.get_proprioception()
+        proprioception['qvel'] = proprioception['qvel'][:-2]
+        return proprioception
 
 @register_env("LiftCube-v0", max_episode_steps=200)
 class LiftCubeEnv(PickCubeEnv):
