@@ -69,7 +69,7 @@ def main():
     domain_rand_params = dict(size_range=0.005, fric_range=[0.5, 1.5], obs_noise=0.005)
     #####----- Debug Args -----#####
     render_mode = 'cameras' # 'human', 'cameras'    
-    fix_task_configuration = False
+    fix_task_configuration = True
     render_by_sim_step = False
     paused = False
     

@@ -64,7 +64,7 @@ class PickCubeEnv(StationaryManipulationEnv):
             q = euler2quat(0, 0, ori)
         # NOTE(chichu): fixed to a certain pose when evaluate on real robot with simulation.
         if self.fix_task_configuration:
-            xyz = np.array([0.0, 0.0, self.cube_half_size[2]])
+            xyz = np.array([-0.05, -0.03, self.cube_half_size[2]])
             ori = 0.0
             q = euler2quat(0, 0, ori)
         self.obj.set_pose(Pose(xyz, q))
@@ -79,6 +79,7 @@ class PickCubeEnv(StationaryManipulationEnv):
             # NOTE(chichu): set to a fixed point when evaluate real robot with simulation
             if self.fix_task_configuration:
                 goal_pos = np.array([0.0, 0.0, 0.1]) + obj_pos[2]
+                goal_pos = np.array([0.05, 0.03, 0.35])
             if np.linalg.norm(goal_pos - obj_pos) > self.min_goal_dist:
                 if verbose:
                     print(f"Found a valid goal at {i}-th trial")
