@@ -126,7 +126,7 @@ class RealXarm:
         self.arm.set_gripper_enable(True)
         qpos = np.array([0, 0, 0, np.pi / 3, 0, np.pi / 3, -np.pi / 2])
         self.arm.set_servo_angle(angle=qpos[:7], is_radian=True, wait=True, speed=SPEED)
-        self.arm.set_gripper_position(800, wait=True, speed=SPEED)
+        self.arm.set_gripper_position(850, wait=True, speed=SPEED)
         time.sleep(1)
         self.arm.set_mode(4)
         self.arm.set_state(state=0)
@@ -220,6 +220,9 @@ class RealXarm:
         base_to_tcp = np.asarray(base_to_tcp)
         base_to_tcp_pose = np.hstack([base_to_tcp[:3] / 1000, euler2quat(*base_to_tcp[3:], axes='sxyz')])
         
+        tcp_pose = base_to_tcp_pose
+        tcp_pose[0] -= 0.4638637
+
         return base_to_tcp_pose
 
     @property
