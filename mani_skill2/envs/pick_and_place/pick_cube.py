@@ -230,7 +230,7 @@ class PickCubeEnv_v2(PickCubeEnv):
             return reward
         
         if info["time_out"]:
-            reward -= 1
+            reward -= 2
 
         tcp_to_obj_pos = self.obj.pose.p - self.tcp.pose.p
         tcp_to_obj_dist = np.linalg.norm(tcp_to_obj_pos)
@@ -253,64 +253,72 @@ class PickCubeEnv_v2(PickCubeEnv):
 
         return reward
     
-# Note: 50 steps is more suitable for position control
-@register_env("PickCube-v3", max_episode_steps=50)
-class PickCubeEnv_v3(PickCubeEnv):
-    def compute_dense_reward(self, info, **kwargs):
-        if info["success"]:
-            return 1
-        if info["time_out"]:
-            return -1
-        reward = 0.0
-        # if info["ee_constraint_break"]:
-        #     reward -= 8
-        # #####----- Angular velocity penalty -----#####
-        # obj_angvel = self.obj.angular_velocity
-        # obj_angvel_norm = np.linalg.norm(obj_angvel)
-        # if obj_angvel_norm > 0.5:
-        #     reward -= 0.5 
-        #####----- Reach reward -----#####
-        tcp_to_obj_pos = self.obj.pose.p - self.tcp.pose.p
-        tcp_to_obj_dist = np.linalg.norm(tcp_to_obj_pos)
-        reaching_reward = 1 - np.tanh(5 * tcp_to_obj_dist)
-        reward += reaching_reward
-        # #####----- Grasp rotate reward -----#####
-        # grasp_rot_loss_fxn = lambda A: np.tanh(np.trace(A.T @ A))  # trace(A.T @ A) has range [0,8] for A being difference of rotation matrices
-        # tcp_pose_wrt_obj = self.obj.pose.inv() * self.tcp.pose
-        # tcp_rot_wrt_obj = tcp_pose_wrt_obj.to_transformation_matrix()[:3, :3]
-        # gt_rots = [
-        #     np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]]),
-        #     np.array([[0, -1, 0], [-1, 0, 0], [0, 0, -1]]),
-        #     np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]]),
-        #     np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]]),
-        # ]
-        # grasp_rot_loss = min([grasp_rot_loss_fxn(x - tcp_rot_wrt_obj) for x in gt_rots])
-        # reward += 1 - grasp_rot_loss
-        #####----- Grasped reward -----#####
-        is_grasped = self.agent.check_grasp(self.obj) # remove max_angle=30 yeilds much better performance
-        if is_grasped:
-            reward += 1
-            # #####----- Rotate reward -----#####
-            # obj_quat = self.obj.pose.q
-            # obj_euler = np.abs(quat2euler(obj_quat))
-            # obj_euler_xy = (obj_euler[0]+obj_euler[1])
-            # reward += (1 - np.tanh(obj_euler_xy)) / 2
-            #####----- Reach reward 2 -----#####
-            obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
-            # if obj_to_goal_dist < self.last_obj_to_goal_dist:
-            place_reward = 1 - np.tanh(5 * obj_to_goal_dist)
-            reward += place_reward
-            # self.last_obj_to_goal_dist = obj_to_goal_dist
-            #####----- Static reward -----#####
-            if self.check_obj_placed():
-                if self.ee_type == 'reduced_gripper':
-                    qvel = self.agent.robot.get_qvel()[:-2]
-                elif self.ee_type == 'full_gripper':
-                    qvel = self.agent.robot.get_qvel()[:-6]
-                static_reward = 1 - np.tanh(5 * np.linalg.norm(qvel))
-                reward += static_reward
+# # Note: 50 steps is more suitable for position control
+# @register_env("PickCube-v3", max_episode_steps=50)
+# class PickCubeEnv_v3(PickCubeEnv):
+#     def compute_dense_reward(self, info, **kwargs):
+#         if info["success"]:
+#             return 1
+#         if info["time_out"]:
+#             return -1
+#         reward = 0.0
+#         # if info["ee_constraint_break"]:
+#         #     reward -= 8
+#         # #####----- Angular velocity penalty -----#####
+#         # obj_angvel = self.obj.angular_velocity
+#         # obj_angvel_norm = np.linalg.norm(obj_angvel)
+#         # if obj_angvel_norm > 0.5:
+#         #     reward -= 0.5 
+#         #####----- Reach reward -----#####
+#         tcp_to_obj_pos = self.obj.pose.p - self.tcp.pose.p
+#         tcp_to_obj_dist = np.linalg.norm(tcp_to_obj_pos)
+#         reaching_reward = 1 - np.tanh(5 * tcp_to_obj_dist)
+#         reward += reaching_reward
+#         # #####----- Grasp rotate reward -----#####
+#         # grasp_rot_loss_fxn = lambda A: np.tanh(np.trace(A.T @ A))  # trace(A.T @ A) has range [0,8] for A being difference of rotation matrices
+#         # tcp_pose_wrt_obj = self.obj.pose.inv() * self.tcp.pose
+#         # tcp_rot_wrt_obj = tcp_pose_wrt_obj.to_transformation_matrix()[:3, :3]
+#         # gt_rots = [
+#         #     np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]]),
+#         #     np.array([[0, -1, 0], [-1, 0, 0], [0, 0, -1]]),
+#         #     np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]]),
+#         #     np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]]),
+#         # ]
+#         # grasp_rot_loss = min([grasp_rot_loss_fxn(x - tcp_rot_wrt_obj) for x in gt_rots])
+#         # reward += 1 - grasp_rot_loss
+#         #####----- Grasped reward -----#####
+#         is_grasped = self.agent.check_grasp(self.obj) # remove max_angle=30 yeilds much better performance
+#         if is_grasped:
+#             reward += 1
+#             # #####----- Rotate reward -----#####
+#             # obj_quat = self.obj.pose.q
+#             # obj_euler = np.abs(quat2euler(obj_quat))
+#             # obj_euler_xy = (obj_euler[0]+obj_euler[1])
+#             # reward += (1 - np.tanh(obj_euler_xy)) / 2
+#             #####----- Reach reward 2 -----#####
+#             obj_to_goal_dist = np.linalg.norm(self.goal_pos - self.obj.pose.p)
+#             # if obj_to_goal_dist < self.last_obj_to_goal_dist:
+#             place_reward = 1 - np.tanh(5 * obj_to_goal_dist)
+#             reward += place_reward
+#             # self.last_obj_to_goal_dist = obj_to_goal_dist
+#             #####----- Static reward -----#####
+#             if self.check_obj_placed():
+#                 if self.ee_type == 'reduced_gripper':
+#                     qvel = self.agent.robot.get_qvel()[:-2]
+#                 elif self.ee_type == 'full_gripper':
+#                     qvel = self.agent.robot.get_qvel()[:-6]
+#                 static_reward = 1 - np.tanh(5 * np.linalg.norm(qvel))
+#                 reward += static_reward
 
-        return reward / 4
+#         return reward / 4
+    
+@register_env("PickCube-v3", max_episode_steps=100)
+class PickCubeEnv_v3(PickCubeEnv_v2):
+    def _get_obs_agent(self):
+        """Remove gripper's vel and base pose."""
+        proprioception = self.agent.get_proprioception()
+        proprioception['qvel'] = proprioception['qvel'][:-2]
+        return proprioception
 
 
 @register_env("LiftCube-v0", max_episode_steps=200)
