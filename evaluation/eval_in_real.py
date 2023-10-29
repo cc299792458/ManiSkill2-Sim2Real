@@ -110,13 +110,13 @@ def evaluate(n, agent, eval_envs, device):
     return result
 
 class RealXarm:
-    def __init__(self, ip, control_freq=20):
+    def __init__(self, ip, control_freq=20, mode='position'):
         self.ip = ip
         self.control_freq = control_freq
         self.duration = 1 / control_freq
+        self.mode = mode
         self._init_arm()
-        self._load_virtual_robot()
-        self._init_vel_ik()
+        
 
     def _init_arm(self):
         self.arm = XArmAPI(self.ip)
@@ -128,10 +128,13 @@ class RealXarm:
         self.arm.set_servo_angle(angle=qpos[:7], is_radian=True, wait=True, speed=SPEED)
         self.arm.set_gripper_position(850, wait=True, speed=SPEED)
         time.sleep(1)
-        self.arm.set_mode(4)
-        self.arm.set_state(state=0)
-        self.arm.set_gripper_enable(True)
-    
+        if self.mode == 'impedance':
+            self.arm.set_mode(4)
+            self.arm.set_state(state=0)
+            self.arm.set_gripper_enable(True)
+            self._load_virtual_robot()
+            self._init_vel_ik()
+
     def _load_virtual_robot(self, robot_name='xarm') -> sapien.Articulation:
         self.engine = sapien.Engine()
         self.scene = self.engine.create_scene()
@@ -165,15 +168,22 @@ class RealXarm:
         self.kinematic_model = PartialKinematicModel(self.articulation, self.start_joint_name, self.end_joint_name)
     
     def step(self, action):
-        self.arm.vc_set_joint_velocity(self._preprocess_arm_action(action[0:3]), is_radian=True, is_sync=True, duration=self.duration)
-        self.arm.set_gripper_position(self._preprocess_gripper_action(action[3]), is_sync=False, speed=SPEED, wait=False)
+        if self.mode == 'position':
+            self.arm.set_gripper_position(self._preprocess_gripper_action(action[7]), is_sync=False, speed=SPEED, wait=True)
+            self.arm.set_tool_position()
+        elif self.mode == 'impedance':
+            self.arm.vc_set_joint_velocity(self._preprocess_arm_action(action[0:3]), is_radian=True, is_sync=True, duration=self.duration)
+            self.arm.set_gripper_position(self._preprocess_gripper_action(action[3]), is_sync=False, speed=SPEED, wait=False)
     
     def _preprocess_arm_action(self, arm_action):
-        action = np.hstack([arm_action, np.zeros([3])])
-        palm_jacobian = self.kinematic_model.compute_end_link_spatial_jacobian(self.qpos[:-2])
-        target_qvel = np.clip(compute_inverse_kinematics(action, palm_jacobian), -np.pi/2, np.pi/2)
+        if self.mode == 'position':
+            pass
+        elif self.mode == 'impedance':
+            action = np.hstack([arm_action, np.zeros([3])])
+            palm_jacobian = self.kinematic_model.compute_end_link_spatial_jacobian(self.qpos[:-2])
+            target_qvel = np.clip(compute_inverse_kinematics(action, palm_jacobian), -np.pi/2, np.pi/2)
 
-        return target_qvel
+            return target_qvel
 
     def _preprocess_gripper_action(self, gripper_action):
         action = (850 + (-10)) / 2 * (1 + gripper_action)
@@ -259,7 +269,7 @@ if __name__ == '__main__':
     agent.load_state_dict(ckpt['actor'])
 
     ##### Instantiate realrobot #####
-    robot = RealXarm(ip="192.168.1.229")
+    robot = RealXarm(ip="192.168.1.229", mode='position')
 
     ##### Loop ####    robot.get_obs()
     
