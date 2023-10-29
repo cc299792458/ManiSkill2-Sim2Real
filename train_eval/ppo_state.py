@@ -66,7 +66,8 @@ def main():
     ee_type = args.ee_type 
     enable_tgs = args.enable_tgs
     ee_move_first =  args.ee_move_first
-    domain_rand_params = dict(size_range=0.005, fric_range=[0.5, 1.5], obs_noise=0.005)
+    domain_rand_params = None
+    # domain_rand_params = dict(size_range=0.005, fric_range=[0.5, 1.5], obs_noise=0.005)
     #####----- Debug Args -----#####
     render_mode = 'cameras' # 'human', 'cameras'    
     fix_task_configuration = True
