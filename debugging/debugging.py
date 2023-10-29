@@ -6,5 +6,5 @@ import mani_skill2.envs
 
 env = gym.make(id="PickCube-v4",
                control_mode='pd_ee_vel_pos',)
-env.reset()
+obs = env.reset()
 env.step(np.array([0.0, 0.0, 0.0, 0.0]))

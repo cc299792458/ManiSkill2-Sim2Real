@@ -191,7 +191,7 @@ class PickCubeEnv_v3(PickCubeEnv_v2):
 @register_env("PickCube-v4", max_episode_steps=100)
 class PickCubeEnv_v4(PickCubeEnv_v3):
     def _get_obs_agent(self):
-        """Get observations from the agent's sensors, e.g., proprioceptive sensors."""
+        """Remove gripper's vel and base pose."""
         proprioception = self.agent.get_proprioception()
         proprioception['qvel'] = proprioception['qvel'][:-2]
         return proprioception
