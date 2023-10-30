@@ -11,7 +11,10 @@ from mani_skill2.utils.kinematics_helper import PartialKinematicModel, compute_i
 import time
 from xarm import XArmAPI
 from collections import defaultdict
+from sapien.core import Pose
 from transforms3d.euler import euler2quat, quat2euler
+from transforms3d.quaternions import axangle2quat
+
 
 import sapien.core as sapien
 
@@ -128,7 +131,10 @@ class RealXarm:
         self.arm.set_servo_angle(angle=qpos[:7], is_radian=True, wait=True, speed=SPEED)
         self.arm.set_gripper_position(850, wait=True, speed=SPEED)
         time.sleep(1)
-        if self.mode == 'impedance':
+        if self.mode == 'position':
+            self.translation_scale = 100
+            self.axangle_scale = 0.1
+        elif self.mode == 'impedance':
             self.arm.set_mode(4)
             self.arm.set_state(state=0)
             self.arm.set_gripper_enable(True)
@@ -169,15 +175,25 @@ class RealXarm:
     
     def step(self, action):
         if self.mode == 'position':
-            self.arm.set_gripper_position(self._preprocess_gripper_action(action[7]), is_sync=False, speed=SPEED, wait=True)
-            self.arm.set_tool_position()
+            self.arm.set_gripper_position(self._preprocess_gripper_action(action[6]), wait=True)
+            delta_tcp_pose = self._preprocess_arm_action(action[0:6])
+            ret_arm = self.arm.set_tool_position(
+                *delta_tcp_pose.p, *quat2euler(delta_tcp_pose.q, axes='sxyz'),
+                is_radian=True, wait=True)
         elif self.mode == 'impedance':
             self.arm.vc_set_joint_velocity(self._preprocess_arm_action(action[0:3]), is_radian=True, is_sync=True, duration=self.duration)
             self.arm.set_gripper_position(self._preprocess_gripper_action(action[3]), is_sync=False, speed=SPEED, wait=False)
     
     def _preprocess_arm_action(self, arm_action):
         if self.mode == 'position':
-            pass
+            cur_tcp_pose = Pose(p=self.tcp_pose[0:3] * self.translation_scale, q=self.tcp_pose[3:])
+            axangle = arm_action[3:6]
+            rot_angle = np.linalg.norm(axangle)
+            delta_tcp_pose = Pose(p=arm_action[:3] * self.translation_scale,  # in milimeters
+                                  q=axangle2quat(axangle / (rot_angle + 1e-9),
+                                                 np.clip(rot_angle, 0.0, 1.0) * self.axangle_scale))
+            return delta_tcp_pose
+
         elif self.mode == 'impedance':
             action = np.hstack([arm_action, np.zeros([3])])
             palm_jacobian = self.kinematic_model.compute_end_link_spatial_jacobian(self.qpos[:-2])
@@ -220,7 +236,7 @@ class RealXarm:
     
     @property
     def tcp_pose(self):
-        """Get TCP pose in robot base frame
+        """Get TCP pose in world frame
         :return pose: If unit_in_mm, position unit is mm. Else, unit is m.
         """
         _, (qpos, qvel, effort) = self.arm.get_joint_states(is_radian=True)
@@ -233,15 +249,15 @@ class RealXarm:
         tcp_pose = base_to_tcp_pose
         tcp_pose[0] -= 0.4638637
 
-        return base_to_tcp_pose
+        return tcp_pose
 
     @property
     def goal_pos(self):
-        return np.array([0.05, 0.03, 0.35])
+        return np.array([0.0, 0.0, 0.35])
 
     @property
     def obj_pose(self):
-        return np.array([-0.05, -0.03, 0.02, 1.0, 0.0, 0.0, 0.0])
+        return np.array([-0.0, -0.0, 0.02, 1.0, 0.0, 0.0, 0.0])
 
     @property
     def obj_grasped(self):
@@ -263,14 +279,14 @@ if __name__ == '__main__':
     eval_envs = gym.vector.AsyncVectorEnv([make_env(env_id, seed, control_mode, video_dir) for i in range(num_eval_envs)], **kwargs)
 
     ##### Load actor #####
-    ckpt_path = '/home/chichu/Documents/Sapien/ManiSkill2-Sim2Real/evaluation/ckpt/pickcube.pt'
+    ckpt_path = '/home/chichu/Documents/Sapien/ManiSkill2-Sim2Real/evaluation/ckpt/pickcube_position.pt'
     ckpt = torch.load(ckpt_path)
     agent = Actor(eval_envs).to(device)
     agent.load_state_dict(ckpt['actor'])
 
     ##### Instantiate realrobot #####
     robot = RealXarm(ip="192.168.1.229", mode='position')
-
+    # robot.step(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]))
     ##### Loop ####    robot.get_obs()
     
     obs = robot.get_obs()
