@@ -257,7 +257,11 @@ class RealXarm:
 
     @property
     def obj_pose(self):
-        return np.array([-0.034, -0.015, 0.02, 1.0, 0.0, 0.0, 0.0])
+        # [0.0, 0.0], [0.02, 0.02], [0.035, -0.02], [-0.02, -0.04], 
+        # *[0.01, -0.045]*
+        # [0.0, 0.0, 45], [0.02, 0.02, 45], [-0.035, -0.02, 30], [0.035, -0.03]
+        # return np.array([0.035, -0.03, 0.02, 0.9659258, 0.0, 0.0, 0.258819])
+        return np.array([0.035, -0.03, 0.02, 1.0, 0.0, 0.0, 0.0])
 
     @property
     def obj_grasped(self):
@@ -291,7 +295,7 @@ if __name__ == '__main__':
     
     obs_sim = eval_envs.reset()
     flag = False
-    while True:
+    for _ in range(3):
         with torch.no_grad():
             obs = robot.get_obs()
             if flag == False:

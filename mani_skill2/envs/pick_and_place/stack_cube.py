@@ -397,6 +397,8 @@ class StackCubeEnv_v2(StackCubeEnv_v1):
         if info["time_out"]:
             reward -= 2
 
+        return reward
+
 @register_env("StackCube-v3", max_episode_steps=100)
 class StackCubeEnv_v3(StackCubeEnv_v2):
     def _get_obs_agent(self):
