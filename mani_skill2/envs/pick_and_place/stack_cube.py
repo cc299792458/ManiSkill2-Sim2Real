@@ -61,7 +61,7 @@ class UniformSampler:
 
 @register_env("StackCube-v0", max_episode_steps=200)
 class StackCubeEnv(StationaryManipulationEnv):
-    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0, 
+    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0.02, 
                 domain_rand_params = dict(size_range=0.005, fric_range=[0.5, 1.5], obs_noise=0.0025), **kwargs):
         if domain_rand_params is not None:
             self.domain_rand = True
@@ -106,12 +106,12 @@ class StackCubeEnv(StationaryManipulationEnv):
             self._actors.append(self.cubeA)
         
         # decrease region size.
-        # xy = self._episode_rng.uniform(-0.05, 0.05, [2])
-        region = [[-0.075, -0.075], [0.075, 0.075]]
+        xy = self._episode_rng.uniform(-0.05, 0.05, [2])
+        region = [[-0.05, -0.1], [0.05, 0.1]]
         sampler = UniformSampler(region, self._episode_rng)
         radius = np.linalg.norm(self.box_half_size[:2]) + 0.001
-        cubeA_xy = sampler.sample(radius, 100)
-        cubeB_xy = sampler.sample(radius, 100, verbose=False)
+        cubeA_xy = xy + sampler.sample(radius, 100)
+        cubeB_xy = xy + sampler.sample(radius, 100, verbose=False)
 
         cubeA_quat = euler2quat(0, 0, self._episode_rng.uniform(0, 2 * np.pi))
         cubeB_quat = euler2quat(0, 0, self._episode_rng.uniform(0, 2 * np.pi))
@@ -303,23 +303,76 @@ class StackCubeEnv_v1(StackCubeEnv):
 
         return reward
 
+# @register_env("StackCube-v2", max_episode_steps=100)
+# class StackCubeEnv_v2(StackCubeEnv):
+#     def reaching_reward(self):
+#         # reaching object reward
+#         tcp_pose = self.tcp.pose.p
+#         cubeA_pos = self.cubeA.pose.p
+#         cubeA_to_tcp_dist = np.linalg.norm(tcp_pose - cubeA_pos)
+#         return 1 - np.tanh(5 * cubeA_to_tcp_dist)
+
+#     def place_reward(self):
+#         cubeA_pos = self.cubeA.pose.p
+#         cubeB_pos = self.cubeB.pose.p
+#         goal_xyz = np.hstack([cubeB_pos[0:2], cubeB_pos[2] + self.box_half_size[2] * 2])
+#         cubeA_to_goal_dist = np.linalg.norm(goal_xyz - cubeA_pos)
+#         reaching_reward2 = 1 - np.tanh(5.0 * cubeA_to_goal_dist)
+#         return reaching_reward2
+
+#     def ungrasp_reward(self):
+#         gripper_width = (
+#             self.agent.robot.get_qlimits()[-1, 1]
+#         )  # NOTE: hard-coded with xarm, reduced-gripper
+#         # ungrasp reward
+#         is_cubeA_grasped = self.agent.check_grasp(self.cubeA)
+#         if not is_cubeA_grasped:
+#             reward = 1.0
+#         else:
+#             reward = self.agent.robot.get_qpos()[-1] / gripper_width
+
+#         v = np.linalg.norm(self.cubeA.velocity)
+#         av = np.linalg.norm(self.cubeA.angular_velocity)
+#         static_reward = 1 - np.tanh(v*10 + av)
+        
+#         return (reward + static_reward) / 2.0
+    
+#     # def ungrasp_reward(self):
+#     #     gripper_width = (
+#     #         self.agent.robot.get_qlimits()[-1, 1] * 2
+#     #     )  # NOTE: hard-coded with panda
+#     #     # ungrasp reward
+#     #     is_cubeA_grasped = self.agent.check_grasp(self.cubeA)
+#     #     if not is_cubeA_grasped:
+#     #         reward = 1.0
+#     #     else:
+#     #         reward = np.sum(self.agent.robot.get_qpos()[-2:]) / gripper_width
+    
+#     #     v = np.linalg.norm(self.cubeA.velocity)
+#     #     av = np.linalg.norm(self.cubeA.angular_velocity)
+#     #     static_reward = 1 - np.tanh(v*10 + av)
+
+#     #     return (reward + static_reward) / 2.0
+        
+#     def compute_dense_reward(self, info, **kwargs):
+
+#         if info["success"]:
+#             reward = 8
+#         elif self._check_cubeA_on_cubeB():
+#             reward = 6 + self.ungrasp_reward()
+#         elif self.agent.check_grasp(self.cubeA):
+#             reward = 4 + self.place_reward()
+#         else:
+#             reward = 2 + self.reaching_reward()
+
+#         # reward = reward - 9.0
+#         if info["time_out"]:
+#             reward -= 3
+
+#         return reward
+
 @register_env("StackCube-v2", max_episode_steps=100)
-class StackCubeEnv_v2(StackCubeEnv):
-    def reaching_reward(self):
-        # reaching object reward
-        tcp_pose = self.tcp.pose.p
-        cubeA_pos = self.cubeA.pose.p
-        cubeA_to_tcp_dist = np.linalg.norm(tcp_pose - cubeA_pos)
-        return 1 - np.tanh(5 * cubeA_to_tcp_dist)
-
-    def place_reward(self):
-        cubeA_pos = self.cubeA.pose.p
-        cubeB_pos = self.cubeB.pose.p
-        goal_xyz = np.hstack([cubeB_pos[0:2], cubeB_pos[2] + self.box_half_size[2] * 2])
-        cubeA_to_goal_dist = np.linalg.norm(goal_xyz - cubeA_pos)
-        reaching_reward2 = 1 - np.tanh(5.0 * cubeA_to_goal_dist)
-        return reaching_reward2
-
+class StackCubeEnv_v2(StackCubeEnv_v1):
     def ungrasp_reward(self):
         gripper_width = (
             self.agent.robot.get_qlimits()[-1, 1]
@@ -337,206 +390,188 @@ class StackCubeEnv_v2(StackCubeEnv):
         
         return (reward + static_reward) / 2.0
     
-    # def ungrasp_reward(self):
-    #     gripper_width = (
-    #         self.agent.robot.get_qlimits()[-1, 1] * 2
-    #     )  # NOTE: hard-coded with panda
-    #     # ungrasp reward
-    #     is_cubeA_grasped = self.agent.check_grasp(self.cubeA)
-    #     if not is_cubeA_grasped:
-    #         reward = 1.0
-    #     else:
-    #         reward = np.sum(self.agent.robot.get_qpos()[-2:]) / gripper_width
-    
-    #     v = np.linalg.norm(self.cubeA.velocity)
-    #     av = np.linalg.norm(self.cubeA.angular_velocity)
-    #     static_reward = 1 - np.tanh(v*10 + av)
-
-    #     return (reward + static_reward) / 2.0
-        
     def compute_dense_reward(self, info, **kwargs):
 
-        if info["success"]:
-            reward = 8
-        elif self._check_cubeA_on_cubeB():
-            reward = 6 + self.ungrasp_reward()
-        elif self.agent.check_grasp(self.cubeA):
-            reward = 4 + self.place_reward()
-        else:
-            reward = 2 + self.reaching_reward()
-
+        reward = super().compute_dense_reward(info, **kwargs)
         # reward = reward - 9.0
         if info["time_out"]:
-            reward -= 3
+            reward -= 2
 
-        return reward
+@register_env("StackCube-v3", max_episode_steps=100)
+class StackCubeEnv_v3(StackCubeEnv_v2):
+    def _get_obs_agent(self):
+        """Remove gripper's vel and base pose."""
+        proprioception = self.agent.get_proprioception()
+        proprioception['qvel'] = proprioception['qvel'][:-2]
+        return proprioception
     
-@register_env("StackCube-v3", max_episode_steps=50)
-class StackCubeEnv_v3(StackCubeEnv):
-    def generate_noise_for_pos(self, size):
-        noise = np.random.uniform(-self.obs_noise, self.obs_noise, size=size)
-        return noise
+# @register_env("StackCube-v3", max_episode_steps=50)
+# class StackCubeEnv_v3(StackCubeEnv):
+#     def generate_noise_for_pos(self, size):
+#         noise = np.random.uniform(-self.obs_noise, self.obs_noise, size=size)
+#         return noise
 
-    def _get_obs_extra(self):
-        obs = OrderedDict(
-            tcp_pose=vectorize_pose(self.tcp.pose),
-        )
-        cubeA_pose = vectorize_pose(self.cubeA.pose)
-        cubeB_pose = vectorize_pose(self.cubeB.pose)
-        tcp_to_cubeA_pos = self.cubeA.pose.p - self.tcp.pose.p
-        tcp_to_cubeB_pos = self.cubeB.pose.p - self.tcp.pose.p
-        cubeA_to_cubeB_pos = self.cubeB.pose.p - self.cubeA.pose.p
-        if self.domain_rand:
-            cubeA_xy_noise = self.generate_noise_for_pos(size=2)
-            cubeB_xy_noise = self.generate_noise_for_pos(size=2)
-            cubeA_pose[0:2] += cubeA_xy_noise
-            cubeB_pose[0:2] += cubeB_xy_noise
-            tcp_to_cubeA_pos[0:2] += cubeA_xy_noise
-            tcp_to_cubeB_pos[0:2] += cubeB_xy_noise
-            cubeA_to_cubeB_pos[0:2] += (cubeB_xy_noise - cubeA_xy_noise)
-        if self._obs_mode in ["state", "state_dict"]:
-            obs.update(
-                cubeA_pose=cubeA_pose,
-                cubeB_pose=cubeB_pose,
-                tcp_to_cubeA_pos=tcp_to_cubeA_pos,
-                tcp_to_cubeB_pos=tcp_to_cubeB_pos,
-                cubeA_to_cubeB_pos=cubeA_to_cubeB_pos,
-                # Add some binary information to facilitate training.
-                cubeA_vel=np.linalg.norm(self.cubeA.velocity),
-                cubeA_ang_vel=np.linalg.norm(self.cubeA.angular_velocity),
-                is_cubeA_grasped=float(self.agent.check_grasp(self.cubeA)),
-                is_cubeA_on_cubeB=float(self._check_cubeA_on_cubeB()),
-                is_cubeA_lift=float(self._check_cubeA_lift()),
-                is_cubeA_above_cubeB=float(self._check_cubeA_above_cubeB())
-            )
-        return obs
+#     def _get_obs_extra(self):
+#         obs = OrderedDict(
+#             tcp_pose=vectorize_pose(self.tcp.pose),
+#         )
+#         cubeA_pose = vectorize_pose(self.cubeA.pose)
+#         cubeB_pose = vectorize_pose(self.cubeB.pose)
+#         tcp_to_cubeA_pos = self.cubeA.pose.p - self.tcp.pose.p
+#         tcp_to_cubeB_pos = self.cubeB.pose.p - self.tcp.pose.p
+#         cubeA_to_cubeB_pos = self.cubeB.pose.p - self.cubeA.pose.p
+#         if self.domain_rand:
+#             cubeA_xy_noise = self.generate_noise_for_pos(size=2)
+#             cubeB_xy_noise = self.generate_noise_for_pos(size=2)
+#             cubeA_pose[0:2] += cubeA_xy_noise
+#             cubeB_pose[0:2] += cubeB_xy_noise
+#             tcp_to_cubeA_pos[0:2] += cubeA_xy_noise
+#             tcp_to_cubeB_pos[0:2] += cubeB_xy_noise
+#             cubeA_to_cubeB_pos[0:2] += (cubeB_xy_noise - cubeA_xy_noise)
+#         if self._obs_mode in ["state", "state_dict"]:
+#             obs.update(
+#                 cubeA_pose=cubeA_pose,
+#                 cubeB_pose=cubeB_pose,
+#                 tcp_to_cubeA_pos=tcp_to_cubeA_pos,
+#                 tcp_to_cubeB_pos=tcp_to_cubeB_pos,
+#                 cubeA_to_cubeB_pos=cubeA_to_cubeB_pos,
+#                 # Add some binary information to facilitate training.
+#                 cubeA_vel=np.linalg.norm(self.cubeA.velocity),
+#                 cubeA_ang_vel=np.linalg.norm(self.cubeA.angular_velocity),
+#                 is_cubeA_grasped=float(self.agent.check_grasp(self.cubeA)),
+#                 is_cubeA_on_cubeB=float(self._check_cubeA_on_cubeB()),
+#                 is_cubeA_lift=float(self._check_cubeA_lift()),
+#                 is_cubeA_above_cubeB=float(self._check_cubeA_above_cubeB())
+#             )
+#         return obs
     
-    def evaluate(self, **kwargs):
-        is_cubeA_on_cubeB = self._check_cubeA_on_cubeB()
-        is_cubeA_static = check_actor_static(self.cubeA)
-        is_cubaA_grasped = self.agent.check_grasp(self.cubeA)
-        is_cubeA_lift = self._check_cubeA_lift()
-        is_cubeA_above_cubeB = self._check_cubeA_above_cubeB()
-        success = is_cubeA_on_cubeB and is_cubeA_static and (not is_cubaA_grasped)
+#     def evaluate(self, **kwargs):
+#         is_cubeA_on_cubeB = self._check_cubeA_on_cubeB()
+#         is_cubeA_static = check_actor_static(self.cubeA)
+#         is_cubaA_grasped = self.agent.check_grasp(self.cubeA)
+#         is_cubeA_lift = self._check_cubeA_lift()
+#         is_cubeA_above_cubeB = self._check_cubeA_above_cubeB()
+#         success = is_cubeA_on_cubeB and is_cubeA_static and (not is_cubaA_grasped)
         
-        return {
-            "is_cubaA_grasped": is_cubaA_grasped,
-            "is_cubeA_on_cubeB": is_cubeA_on_cubeB,
-            "is_cubeA_static": is_cubeA_static,
-            "is_cubeA_lift": is_cubeA_lift,
-            "is_cubeA_above_cubeB": is_cubeA_above_cubeB,
-            "cubeA_vel": np.linalg.norm(self.cubeA.velocity),
-            "cubeA_ang_vel": np.linalg.norm(self.cubeA.angular_velocity),
-            "success": success,
-        }
+#         return {
+#             "is_cubaA_grasped": is_cubaA_grasped,
+#             "is_cubeA_on_cubeB": is_cubeA_on_cubeB,
+#             "is_cubeA_static": is_cubeA_static,
+#             "is_cubeA_lift": is_cubeA_lift,
+#             "is_cubeA_above_cubeB": is_cubeA_above_cubeB,
+#             "cubeA_vel": np.linalg.norm(self.cubeA.velocity),
+#             "cubeA_ang_vel": np.linalg.norm(self.cubeA.angular_velocity),
+#             "success": success,
+#         }
     
-    def _check_cubeA_lift(self, height=0.08):
-        cubeA_pos = self.cubeA.pose.p
-        cubeA_to_height_dist = np.abs(height - cubeA_pos[2])
-        return bool(cubeA_to_height_dist < 0.01)
+#     def _check_cubeA_lift(self, height=0.08):
+#         cubeA_pos = self.cubeA.pose.p
+#         cubeA_to_height_dist = np.abs(height - cubeA_pos[2])
+#         return bool(cubeA_to_height_dist < 0.01)
     
-    def _check_cubeA_above_cubeB(self):
-        cubeA_pos = self.cubeA.pose.p
-        cubeB_pos = self.cubeB.pose.p
-        cubeA_to_cubeB_dist = np.linalg.norm(cubeB_pos[:2] - cubeA_pos[:2])
-        return bool(cubeA_to_cubeB_dist < 0.01)
+#     def _check_cubeA_above_cubeB(self):
+#         cubeA_pos = self.cubeA.pose.p
+#         cubeB_pos = self.cubeB.pose.p
+#         cubeA_to_cubeB_dist = np.linalg.norm(cubeB_pos[:2] - cubeA_pos[:2])
+#         return bool(cubeA_to_cubeB_dist < 0.01)
     
-    def reaching_reward(self):
-        # reaching object reward
-        tcp_pose = self.tcp.pose.p
-        cubeA_pos = self.cubeA.pose.p
-        cubeA_to_tcp_dist = np.linalg.norm(tcp_pose - cubeA_pos)
-        reaching_reward = 1 - np.tanh(5 * cubeA_to_tcp_dist)
+#     def reaching_reward(self):
+#         # reaching object reward
+#         tcp_pose = self.tcp.pose.p
+#         cubeA_pos = self.cubeA.pose.p
+#         cubeA_to_tcp_dist = np.linalg.norm(tcp_pose - cubeA_pos)
+#         reaching_reward = 1 - np.tanh(5 * cubeA_to_tcp_dist)
 
-        return reaching_reward
+#         return reaching_reward
     
-    def grasp_rotate_reward(self):
-        grasp_rot_loss_fxn = lambda A: np.tanh(np.trace(A.T @ A))  # trace(A.T @ A) has range [0,8] for A being difference of rotation matrices
-        tcp_pose_wrt_cubeA = self.cubeA.pose.inv() * self.tcp.pose
-        tcp_rot_wrt_cubeA = tcp_pose_wrt_cubeA.to_transformation_matrix()[:3, :3]
-        gt_rots = [
-            np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]]),
-            np.array([[0, -1, 0], [-1, 0, 0], [0, 0, -1]]),
-            np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]]),
-            np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]]),
-        ]
-        grasp_rot_loss = min([grasp_rot_loss_fxn(x - tcp_rot_wrt_cubeA) for x in gt_rots])
-        reward = 1 - grasp_rot_loss
+#     def grasp_rotate_reward(self):
+#         grasp_rot_loss_fxn = lambda A: np.tanh(np.trace(A.T @ A))  # trace(A.T @ A) has range [0,8] for A being difference of rotation matrices
+#         tcp_pose_wrt_cubeA = self.cubeA.pose.inv() * self.tcp.pose
+#         tcp_rot_wrt_cubeA = tcp_pose_wrt_cubeA.to_transformation_matrix()[:3, :3]
+#         gt_rots = [
+#             np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]]),
+#             np.array([[0, -1, 0], [-1, 0, 0], [0, 0, -1]]),
+#             np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]]),
+#             np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]]),
+#         ]
+#         grasp_rot_loss = min([grasp_rot_loss_fxn(x - tcp_rot_wrt_cubeA) for x in gt_rots])
+#         reward = 1 - grasp_rot_loss
 
-        return reward
+#         return reward
 
-    def lift_reward(self, height=0.08):
-        cubeA_pos = self.cubeA.pose.p
-        cubeB_pos = self.cubeB.pose.p
-        goal_pos = np.hstack([cubeB_pos[0:2], np.array([height])])
-        cubeA_to_subgoal_dist = np.linalg.norm(goal_pos - cubeA_pos)
-        return 1 - np.tanh(5 * cubeA_to_subgoal_dist)
+#     def lift_reward(self, height=0.08):
+#         cubeA_pos = self.cubeA.pose.p
+#         cubeB_pos = self.cubeB.pose.p
+#         goal_pos = np.hstack([cubeB_pos[0:2], np.array([height])])
+#         cubeA_to_subgoal_dist = np.linalg.norm(goal_pos - cubeA_pos)
+#         return 1 - np.tanh(5 * cubeA_to_subgoal_dist)
     
-    def move_reward(self):
-        cubeA_pos = self.cubeA.pose.p
-        cubeB_pos = self.cubeB.pose.p
-        cubeA_to_cubeB_dist = np.linalg.norm(cubeB_pos[:2] - cubeA_pos[:2])
-        move_reward = 1 - np.tanh(5.0 * cubeA_to_cubeB_dist)
-        return move_reward
+#     def move_reward(self):
+#         cubeA_pos = self.cubeA.pose.p
+#         cubeB_pos = self.cubeB.pose.p
+#         cubeA_to_cubeB_dist = np.linalg.norm(cubeB_pos[:2] - cubeA_pos[:2])
+#         move_reward = 1 - np.tanh(5.0 * cubeA_to_cubeB_dist)
+#         return move_reward
 
-    def place_reward(self):
-        cubeA_pos = self.cubeA.pose.p
-        cubeB_pos = self.cubeB.pose.p
-        goal_xyz = np.hstack([cubeB_pos[0:2], cubeB_pos[2] + self.box_half_size[2] * 2])
-        cubeA_to_goal_dist = np.linalg.norm(goal_xyz - cubeA_pos)
-        reaching_reward2 = 1 - np.tanh(5.0 * cubeA_to_goal_dist)
-        return reaching_reward2
+#     def place_reward(self):
+#         cubeA_pos = self.cubeA.pose.p
+#         cubeB_pos = self.cubeB.pose.p
+#         goal_xyz = np.hstack([cubeB_pos[0:2], cubeB_pos[2] + self.box_half_size[2] * 2])
+#         cubeA_to_goal_dist = np.linalg.norm(goal_xyz - cubeA_pos)
+#         reaching_reward2 = 1 - np.tanh(5.0 * cubeA_to_goal_dist)
+#         return reaching_reward2
 
-    def ungrasp_reward(self):
-        gripper_width = (
-            self.agent.robot.get_qlimits()[-1, 1]
-        )  # NOTE: hard-coded with xarm, reduced-gripper
-        # ungrasp reward
-        is_cubeA_grasped = self.agent.check_grasp(self.cubeA)
-        if not is_cubeA_grasped:
-            reward = 1.0
-        else:
-            reward = self.agent.robot.get_qpos()[-1] / gripper_width
+#     def ungrasp_reward(self):
+#         gripper_width = (
+#             self.agent.robot.get_qlimits()[-1, 1]
+#         )  # NOTE: hard-coded with xarm, reduced-gripper
+#         # ungrasp reward
+#         is_cubeA_grasped = self.agent.check_grasp(self.cubeA)
+#         if not is_cubeA_grasped:
+#             reward = 1.0
+#         else:
+#             reward = self.agent.robot.get_qpos()[-1] / gripper_width
 
-        v = np.linalg.norm(self.cubeA.velocity)
-        av = np.linalg.norm(self.cubeA.angular_velocity)
-        static_reward = 1 - np.tanh(v*10 + av)
+#         v = np.linalg.norm(self.cubeA.velocity)
+#         av = np.linalg.norm(self.cubeA.angular_velocity)
+#         static_reward = 1 - np.tanh(v*10 + av)
         
-        return (reward + static_reward) / 2.0
+#         return (reward + static_reward) / 2.0
     
-    # def unrotate_reward(self):
-    #     cubeA_quat = self.cubeA.pose.q
-    #     cubeA_euler = np.abs(quat2euler(cubeA_quat))
+#     # def unrotate_reward(self):
+#     #     cubeA_quat = self.cubeA.pose.q
+#     #     cubeA_euler = np.abs(quat2euler(cubeA_quat))
 
-    #     roll, pitch = cubeA_euler[0], cubeA_euler[1]
-    #     unrotate_reward = 1 - np.clip((roll+pitch)/(np.pi/4), a_min=0, a_max=1)
+#     #     roll, pitch = cubeA_euler[0], cubeA_euler[1]
+#     #     unrotate_reward = 1 - np.clip((roll+pitch)/(np.pi/4), a_min=0, a_max=1)
 
-    #     return unrotate_reward
+#     #     return unrotate_reward
 
-    def compute_dense_reward(self, info, **kwargs):
+#     def compute_dense_reward(self, info, **kwargs):
 
-        if info["success"]:
-            reward = 6
-        elif self._check_cubeA_on_cubeB():
-            reward = 5 + self.ungrasp_reward()
-        elif self._check_cubeA_above_cubeB():
-            reward = 4 + self.place_reward()
-        elif self._check_cubeA_lift():
-            reward = 3 + self.move_reward()
-        elif self.agent.check_grasp(self.cubeA):
-            reward = 2 + self.lift_reward()
-        else:
-            reward = self.reaching_reward() + self.grasp_rotate_reward()
+#         if info["success"]:
+#             reward = 6
+#         elif self._check_cubeA_on_cubeB():
+#             reward = 5 + self.ungrasp_reward()
+#         elif self._check_cubeA_above_cubeB():
+#             reward = 4 + self.place_reward()
+#         elif self._check_cubeA_lift():
+#             reward = 3 + self.move_reward()
+#         elif self.agent.check_grasp(self.cubeA):
+#             reward = 2 + self.lift_reward()
+#         else:
+#             reward = self.reaching_reward() + self.grasp_rotate_reward()
 
-        # if self.agent.check_grasp(self.cubeA):
-        #     reward += self.unrotate_reward()
+#         # if self.agent.check_grasp(self.cubeA):
+#         #     reward += self.unrotate_reward()
 
-        cubeB_vel_penalty = 10 * np.linalg.norm(self.cubeB.velocity) + \
-                        np.linalg.norm(self.cubeB.angular_velocity)
-        reward += 1 - np.tanh(cubeB_vel_penalty)
+#         cubeB_vel_penalty = 10 * np.linalg.norm(self.cubeB.velocity) + \
+#                         np.linalg.norm(self.cubeB.angular_velocity)
+#         reward += 1 - np.tanh(cubeB_vel_penalty)
 
-        # reward = reward - 9.0
-        if info["time_out"]:
-            reward = -3
+#         # reward = reward - 9.0
+#         if info["time_out"]:
+#             reward = -3
 
-        return np.clip(reward / 7, a_min=-1, a_max=1)
+#         return np.clip(reward / 7, a_min=-1, a_max=1)
+

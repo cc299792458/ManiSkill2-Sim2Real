@@ -31,7 +31,6 @@ class PickCubeEnv(StationaryManipulationEnv):
         self.org_half_cube_size = 0.02
         half_cube_size = self.org_half_cube_size
         self.cube_half_size = np.array([half_cube_size] * 3, np.float32)  # (chichu) change the half size of cube from 0.02 to 0.049/2 to align the real cube.
-        # self.last_obj_to_goal_dist = 0
         super().__init__(*args, **kwargs)
 
     def _load_actors(self):
