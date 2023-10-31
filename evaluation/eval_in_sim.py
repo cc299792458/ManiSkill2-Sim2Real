@@ -257,7 +257,7 @@ class RealXarm:
 
     @property
     def obj_pose(self):
-        return np.array([-0.034, -0.015, 0.02, 1.0, 0.0, 0.0, 0.0])
+        return np.array([-0.0, -0.0, 0.02, 1.0, 0.0, 0.0, 0.0])
 
     @property
     def obj_grasped(self):
@@ -285,20 +285,11 @@ if __name__ == '__main__':
     agent.load_state_dict(ckpt['actor'])
 
     ##### Instantiate realrobot #####
-    robot = RealXarm(ip="192.168.1.229", mode='position')
+    # robot = RealXarm(ip="192.168.1.229", mode='position')
     # robot.step(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]))
     ##### Loop ####    robot.get_obs()
-    
-    obs_sim = eval_envs.reset()
-    flag = False
+    obs = eval_envs.reset()
     while True:
         with torch.no_grad():
-            obs = robot.get_obs()
-            if flag == False:
-                obs[20], obs[21] = -obs[20], -obs[21]
-                flag = True
-            # obs_sim = eval_envs.reset()
-            # diff = np.abs(obs - obs_sim)
             action = agent.get_eval_action(torch.Tensor(obs).to(device)).cpu().numpy()
-            robot.step(action)
-            obs_sim, rew, done, info = eval_envs.step(action)
+            obs, rew, done, info = eval_envs.step(action)

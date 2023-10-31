@@ -645,6 +645,9 @@ class BaseEnv(gym.Env):
         reward = self.get_reward(obs=obs, action=action, info=info)
         done = self.get_done(obs=obs, info=info)
 
+        # self.update_render()
+        # self.render()
+
         return obs, reward, done, info
 
     def step_action(self, action):
