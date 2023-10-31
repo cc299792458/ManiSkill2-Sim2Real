@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument("-e", "--env-id", type=str, default="PickCube-v3")
     parser.add_argument("-o", "--obs-mode", type=str)
     parser.add_argument("--reward-mode", type=str)
-    parser.add_argument("-c", "--control-mode", type=str, default="pd_ee_delta_pose")
+    parser.add_argument("-c", "--control-mode", type=str, default="constvel_ee_delta_pos")
     parser.add_argument("--render-mode", type=str, default="cameras")
     parser.add_argument("--enable-sapien-viewer", action="store_true")
     parser.add_argument("--record-dir", type=str)
@@ -52,7 +52,7 @@ def main():
         obs_mode=args.obs_mode,
         reward_mode=args.reward_mode,
         control_mode=args.control_mode,
-        low_level_control_mode='impedance',
+        low_level_control_mode='position',
         **args.env_kwargs
     )
 
@@ -126,6 +126,7 @@ def main():
         elif (
             "pd_ee_delta_pos" in args.control_mode
             or "pd_ee_target_delta_pos" in args.control_mode
+            or 'constvel_ee_delta_pos' in args.control_mode
         ):
             ee_action = np.zeros([3])
         else:

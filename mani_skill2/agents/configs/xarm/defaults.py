@@ -130,6 +130,17 @@ class XArmDefaultConfig:
             ee_link=self.ee_link_name,
             use_target=self.arm_use_target,
         )
+        arm_constvel_ee_delta_pos = ConstVelEEPosControllerConfig(
+            self.arm_joint_names,
+            -0.1,
+            0.1,
+            self.arm_stiffness,
+            self.arm_damping,
+            self.arm_force_limit,
+            ee_link=self.ee_link_name,
+            use_target=self.arm_use_target,
+            interpolate=True,
+        )
         arm_constvel_ee_delta_pose = ConstVelEEPoseControllerConfig(
             self.arm_joint_names,
             -0.1,
@@ -166,6 +177,9 @@ class XArmDefaultConfig:
             pd_ee_delta_pos=dict(arm=arm_pd_ee_delta_pos, gripper=gripper_pd_joint_pos),
             pd_ee_delta_pose=dict(
                 arm=arm_pd_ee_delta_pose, gripper=gripper_pd_joint_pos
+            ),
+            constvel_ee_delta_pos=dict(
+                arm=arm_constvel_ee_delta_pos, gripper=gripper_pd_joint_pos
             ),
             constvel_ee_delta_pose=dict(
                 arm=arm_constvel_ee_delta_pose, gripper=gripper_pd_joint_pos

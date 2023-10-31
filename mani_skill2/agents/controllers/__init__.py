@@ -13,7 +13,11 @@ from .pd_ee_pose import (
     PDEEPoseController,
     PDEEPoseControllerConfig,
 )
-from .constvel_ee_pose import ConstVelEEPoseController, ConstVelEEPoseControllerConfig
+from .constvel_ee_pose import (
+    ConstVelEEPosController,
+    ConstVelEEPosControllerConfig,
+    ConstVelEEPoseController, 
+    ConstVelEEPoseControllerConfig)
 from .pd_joint_vel import PDJointVelController, PDJointVelControllerConfig
 from .pd_joint_pos_vel import PDJointPosVelController, PDJointPosVelControllerConfig
 from .passive_controller import PassiveController, PassiveControllerConfig

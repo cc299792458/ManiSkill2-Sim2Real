@@ -16,6 +16,151 @@ from .pd_ee_pose import PDEEPoseController
 
 import time
 
+class ConstVelEEPosController(PDEEPoseController):
+    config: "ConstVelEEPosControllerConfig"
+
+    def __init__(self, config: ControllerConfig, articulation, control_freq: int, sim_freq: int = None, 
+                 trans_vel=0.6, interpolate_step=1): 
+        """
+            This controller tries to track a constant linear motion trajectory.
+            
+            Args:
+                trans_vel: velocity of constant translate linear motion.
+                interpolate_step: how many simulation steps to set a sub target.
+            
+            Real XArm has translation velocity 0.1 m/s.
+                    
+            Single sub target's distance can be calculated by: trans_vel * interpolate_step * (1 / simulation_freq)
+            Since simulation_freq is fixed to 200Hz, the distance equals to trans_vel * interpolate_step / 200.
+            If trans_vel=0.1, interpolate_step=25, then single sub-target's distance equals to 0.0125m.
+        """
+        
+        super().__init__(config, articulation, control_freq, sim_freq)
+        self.trans_vel = trans_vel
+        self.interpolate_step = interpolate_step
+        self._initialize_velocity_ik()
+    
+    def _initialize_action_space(self):
+        low = np.float32(np.broadcast_to(self.config.pos_lower, 3))
+        high = np.float32(np.broadcast_to(self.config.pos_upper, 3))
+        self.action_space = spaces.Box(low, high, dtype=np.float32)
+
+    def reset(self):
+        super().reset()
+        self.target_qvel = np.zeros_like(self.qpos)
+
+    def _initialize_velocity_ik(self):
+        # NOTE(chichu): Hard-coded with xarm
+        self.start_joint_name = self.articulation.get_joints()[1].get_name()
+        self.end_joint_name = self.articulation.get_active_joints()[6].get_name()
+        self.kinematic_model = PartialKinematicModel(self.articulation, self.start_joint_name, self.end_joint_name)
+        self.vel_ee_link_name = self.kinematic_model.end_link_name
+        self.vel_ee_link = [link for link in self.articulation.get_links() if link.get_name() == self.vel_ee_link_name][0]
+
+    def set_action(self, action: np.ndarray):
+        action = self._preprocess_action(action)
+
+        self._step = 0
+        self._sub_target_step = 0
+        self._start_qpos = self.qpos
+        
+        # Calculate next target pose/qpos, namely, final target pose/qpos for this action.
+        if self.config.use_target:
+            prev_ee_pose_at_base = self._target_pose
+        else:
+            prev_ee_pose_at_base = self.ee_pose_at_base
+        self._target_pose = self.compute_target_pose(prev_ee_pose_at_base, action)
+        self._target_qpos = self.compute_ik(self._target_pose)
+        if self._target_qpos is None:
+            self._target_qpos = self._start_qpos
+
+        if self.config.interpolate:
+            # NOTE(chichu): When we enable use_target, we use last target pose to calculate next target pose,
+            # but current pose is used to calculate pos_dis and self._sim_steps.
+            pos_dis = np.linalg.norm(self._target_pose.p - self.ee_pose_at_base.p)
+            self._sim_steps = pos_dis / (self.trans_vel * (1 / self._sim_freq))
+            self._velocity = np.zeros([6])
+            self._velocity[0:3] = self.trans_vel * (self._target_pose.p - self.ee_pose_at_base.p) / (pos_dis + 1e-9) 
+            # Calculate sub targets
+            self._sub_target_num = int(self._sim_steps // self.interpolate_step) + 1
+            self._sub_target_pose = []
+            for i in range(self._sub_target_num - 1):
+                self._sub_target_pose.append(sapien.Pose(\
+                    p=(self.ee_pose_at_base.p + (i + 1) * self._velocity[0:3] * (1 / self._sim_freq * self.interpolate_step)),\
+                    q=self._target_pose.q))
+            self._sub_target_pose.append(sapien.Pose(p=self._target_pose.p, q=self._target_pose.q))
+        else:
+            raise NotImplementedError
+    
+    def compute_velocity_ik(self):
+        current_qpos = self.qpos
+        jacobian = self.kinematic_model.compute_end_link_spatial_jacobian(current_qpos[:7])
+        target_qvel = compute_inverse_kinematics(self._velocity, jacobian)[:7]
+
+        return target_qvel
+    
+    def compute_target_pose(self, prev_ee_pose_at_base, action):
+        # Keep the current rotation and change the position
+        if self.config.use_delta:
+            delta_pose = sapien.Pose(action)
+
+            if self.config.frame == "base":
+                target_pose = delta_pose * prev_ee_pose_at_base
+            elif self.config.frame == "ee":
+                target_pose = prev_ee_pose_at_base * delta_pose
+            else:
+                raise NotImplementedError(self.config.frame)
+        else:
+            assert self.config.frame == "base", self.config.frame
+            target_pose = sapien.Pose(action)
+
+        return target_pose
+    
+    def before_simulation_step(self):
+        """
+            Set target in the simulation loop, run certain simulation steps, set target once, depanding on self.interpolate_step.
+        """
+        if self.config.interpolate:
+            if self._step % self.interpolate_step == 0:
+                sub_target = self._sub_target_pose[self._sub_target_step]
+                self.target_qpos = self.compute_ik(sub_target)
+                if self.target_qpos is None:
+                    self.target_qpos = self.qpos
+                self.set_drive_targets(self.target_qpos)
+                if self._sub_target_step < self._sub_target_num - 1:
+                    self.target_qvel = self.compute_velocity_ik() 
+                    self.set_drive_velocity_targets(self.target_qvel)
+                else:
+                    self.set_drive_velocity_targets(np.zeros_like(self.target_qvel))
+                if self._sub_target_step < self._sub_target_num - 1:
+                    self._sub_target_step += 1
+            self._step += 1
+
+        else:
+            raise NotImplementedError
+    
+    def _clip_and_scale_action(self, action):
+        return clip_and_scale_action(
+            action, self._action_space.low, self._action_space.high
+        )
+
+@dataclass
+class ConstVelEEPosControllerConfig(ControllerConfig):
+    pos_lower: Union[float, Sequence[float]]
+    pos_upper: Union[float, Sequence[float]]
+    stiffness: Union[float, Sequence[float]]
+    damping: Union[float, Sequence[float]]
+    force_limit: Union[float, Sequence[float]] = 1e10
+    friction: Union[float, Sequence[float]] = 0.0
+    ee_link: str = None
+    frame: str = "ee"  # [base, ee, ee_align]
+    use_delta: bool = True
+    use_target: bool = False
+    interpolate: bool = False
+    normalize_action: bool = True
+    controller_cls = ConstVelEEPosController
+
+
 class ConstVelEEPoseController(PDEEPoseController):
     config: "ConstVelEEPoseControllerConfig"
 
@@ -77,7 +222,7 @@ class ConstVelEEPoseController(PDEEPoseController):
             pos_dis = np.linalg.norm(self._target_pose.p - self.ee_pose_at_base.p)
             self._sim_steps = pos_dis / (self.trans_vel * (1 / self._sim_freq))
             self._velocity = np.zeros([6])
-            self._velocity[0:3] = self.trans_vel * (self._target_pose.p - self.ee_pose_at_base.p) / pos_dis 
+            self._velocity[0:3] = self.trans_vel * (self._target_pose.p - self.ee_pose_at_base.p) / (pos_dis + 1e-9) 
             # Calculate sub targets
             self._sub_target_num = int(self._sim_steps // self.interpolate_step) + 1
             self._sub_target_pose = []
