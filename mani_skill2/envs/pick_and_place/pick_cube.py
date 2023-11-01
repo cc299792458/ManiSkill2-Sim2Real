@@ -55,7 +55,7 @@ class PickCubeEnv(StationaryManipulationEnv):
             self.obj = self._build_cube(self.cube_half_size, physical_material=physcial_mat)
             self._actors.append(self.obj)
 
-        xy = self._episode_rng.uniform(-0.1, 0.1, [2])
+        xy = self._episode_rng.uniform(-0.35, 0.15, [2])
         xyz = np.hstack([xy, self.cube_half_size[2]])
         q = [1, 0, 0, 0]
         if self.obj_init_rot_z:
@@ -63,7 +63,7 @@ class PickCubeEnv(StationaryManipulationEnv):
             q = euler2quat(0, 0, ori)
         # NOTE(chichu): fixed to a certain pose when evaluate on real robot with simulation.
         if self.fix_task_configuration:
-            xyz = np.array([0.0, 0.0, self.cube_half_size[2]])
+            xyz = np.array([0.01, -0.045, self.cube_half_size[2]])
             ori = 0.0
             q = euler2quat(0, 0, ori)
         self.obj.set_pose(Pose(xyz, q))

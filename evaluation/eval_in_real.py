@@ -113,11 +113,12 @@ def evaluate(n, agent, eval_envs, device):
     return result
 
 class RealXarm:
-    def __init__(self, ip, control_freq=20, mode='position'):
+    def __init__(self, ip, control_freq=20, mode='position', env_name='PickCube'):
         self.ip = ip
         self.control_freq = control_freq
         self.duration = 1 / control_freq
         self.mode = mode
+        self.env_name = 'PickCube'
         self._init_arm()
         
 
@@ -206,15 +207,16 @@ class RealXarm:
         return action
 
     def get_obs(self):
-        tcp_pose = self.tcp_pose
-        goal_pos = self.goal_pos
-        tcp_to_goal_pos = goal_pos - tcp_pose[0:3]
-        obj_pose = self.obj_pose
-        tcp_to_obj_pos = obj_pose[0:3] - tcp_pose[0:3]
-        obj_to_goal_pos = goal_pos - obj_pose[0:3]
-        obs = np.hstack([self.qpos, self.qvel, tcp_pose, goal_pos, tcp_to_goal_pos,
-                        obj_pose, tcp_to_obj_pos, obj_to_goal_pos, self.obj_grasped])
-        return obs
+        if self.env_name == 'PickCube':
+            tcp_pose = self.tcp_pose
+            goal_pos = self.goal_pos
+            tcp_to_goal_pos = goal_pos - tcp_pose[0:3]
+            obj_pose = self.obj_pose
+            tcp_to_obj_pos = obj_pose[0:3] - tcp_pose[0:3]
+            obj_to_goal_pos = goal_pos - obj_pose[0:3]
+            obs = np.hstack([self.qpos, self.qvel, tcp_pose, goal_pos, tcp_to_goal_pos,
+                            obj_pose, tcp_to_obj_pos, obj_to_goal_pos, self.obj_grasped])
+            return obs
         
     def gripper_real_2_sim(self, gripper_dis):
         return gripper_dis * 5.249186 * 1e-5 + 2.49186 * 1e-5
@@ -261,7 +263,7 @@ class RealXarm:
         # *[0.01, -0.045]*
         # [0.0, 0.0, 45], [0.02, 0.02, 45], [-0.035, -0.02, 30], [0.035, -0.03]
         # return np.array([0.035, -0.03, 0.02, 0.9659258, 0.0, 0.0, 0.258819])
-        return np.array([0.035, -0.03, 0.02, 1.0, 0.0, 0.0, 0.0])
+        return np.array([0.01, -0.045, 0.02, 1.0, 0.0, 0.0, 0.0])
 
     @property
     def obj_grasped(self):
@@ -291,7 +293,7 @@ if __name__ == '__main__':
     ##### Instantiate realrobot #####
     robot = RealXarm(ip="192.168.1.229", mode='position')
     # robot.step(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]))
-    ##### Loop ####    robot.get_obs()
+    ##### Loop ####
     
     obs_sim = eval_envs.reset()
     flag = False
