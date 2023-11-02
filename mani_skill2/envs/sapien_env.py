@@ -254,7 +254,7 @@ class BaseEnv(gym.Env):
         elif ee_type == 'full_gripper':
             self.qpos_ee_threshold = 0.5
         self.qvel_threshold = 0.5   # 0.01
-        self.ee_p_threshold = 0.002
+        self.ee_p_threshold = 0.0005 # 0.002
         self.ee_q_threshold = 0.2
 
         self.ee_break_threshold = 0.004

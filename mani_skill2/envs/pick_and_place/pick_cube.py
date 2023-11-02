@@ -17,7 +17,7 @@ class PickCubeEnv(StationaryManipulationEnv):
     min_goal_dist = 0.05
 
     def __init__(self, *args, obj_init_rot_z=True, 
-                 domain_rand_params = dict(size_range=0.005, fric_range=[0.5, 1.5], obs_noise=0.005), **kwargs):
+                 domain_rand_params = dict(size_range=0.005, fric_range=[0.1, 2.0], obs_noise=0.005), **kwargs):
         self.obj_init_rot_z = obj_init_rot_z
         if domain_rand_params is not None:
             self.domain_rand = True
