@@ -684,3 +684,81 @@ class PegInsertionSideEnv_v1(PegInsertionSideEnv):
                 reward += cos_axis
 
         return reward
+    
+@register_env("PegInsertionSide-v2", max_episode_steps=200)
+class PegInsertionSideEnv_v2(PegInsertionSideEnv_v1):
+    # obs with is_grasp
+    def _get_obs_extra(self) -> OrderedDict:
+        ret = super()._get_obs_extra()
+        ret['is_grasped'] = float(self.agent.check_grasp(self.peg))
+        return ret
+    
+@register_env("PegInsertionSide-v3", max_episode_steps=200)
+class PegInsertionSideEnv_v3(PegInsertionSideEnv_v2):
+    def _load_actors(self):
+        self._add_ground(render=self.bg_name is None)
+
+        # peg
+        length, radius = 0.1, 0.02
+        self.peg_half_length = length
+        self.peg_radius = radius
+        builder = self._scene.create_actor_builder()
+        builder.add_box_collision(half_size=[length, radius, radius])
+
+        # peg head
+        mat = self._renderer.create_material()
+        mat.set_base_color(hex2rgba("#EC7357"))
+        mat.metallic = 0.0
+        mat.roughness = 0.5
+        mat.specular = 0.5
+        builder.add_box_visual(
+            Pose([length / 2, 0, 0]),
+            half_size=[length / 2, radius, radius],
+            material=mat,
+        )
+
+        # peg tail
+        mat = self._renderer.create_material()
+        mat.set_base_color(hex2rgba("#EDF6F9"))
+        mat.metallic = 0.0
+        mat.roughness = 0.5
+        mat.specular = 0.5
+        builder.add_box_visual(
+            Pose([-length / 2, 0, 0]),
+            half_size=[length / 2, radius, radius],
+            material=mat,
+        )
+
+        self.peg = builder.build("peg")
+        self.peg_head_offset = Pose([length, 0, 0])
+        self.peg_half_size = np.float32([length, radius, radius])
+
+        # box with hole
+        center = np.zeros(2)
+        inner_radius, outer_radius, depth = radius + self._clearance, length, length
+        self.box = self._build_box_with_hole(
+            inner_radius, outer_radius, depth, center=center
+        )
+        self.box_hole_offset = Pose(np.hstack([0, center]))
+        self.box_hole_radius = inner_radius
+
+    def _initialize_actors(self):
+        xy = np.array([0, -0.15])
+        pos = np.hstack([xy, self.peg_half_size[2]])
+        ori = np.pi / 2
+        quat = euler2quat(0, 0, ori)
+        self.peg.set_pose(Pose(pos, quat))
+
+        xy = np.array([0, 0.3])
+        pos = np.hstack([xy, self.peg_half_size[0]])
+        ori = np.pi / 2
+        quat = euler2quat(0, 0, ori)
+        self.box.set_pose(Pose(pos, quat))
+
+@register_env("PegInsertionSide-v4", max_episode_steps=200)
+class PegInsertionSideEnv_v4(PegInsertionSideEnv_v3):
+    def _get_obs_agent(self):
+        """Remove gripper's vel and base pose."""
+        proprioception = self.agent.get_proprioception()
+        proprioception['qvel'] = proprioception['qvel'][:-2]
+        return proprioception
