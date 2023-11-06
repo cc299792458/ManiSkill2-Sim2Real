@@ -32,6 +32,8 @@ class PickCubeEnv(StationaryManipulationEnv):
         half_cube_size = self.org_half_cube_size
         self.cube_half_size = np.array([half_cube_size] * 3, np.float32)  # (chichu) change the half size of cube from 0.02 to 0.049/2 to align the real cube.
         super().__init__(*args, **kwargs)
+        if self.fix_task_configuration:
+            self.domain_rand = False
 
     def _load_actors(self):
         self._add_ground(render=self.bg_name is None)
@@ -63,7 +65,7 @@ class PickCubeEnv(StationaryManipulationEnv):
             q = euler2quat(0, 0, ori)
         # NOTE(chichu): fixed to a certain pose when evaluate on real robot with simulation.
         if self.fix_task_configuration:
-            xyz = np.array([0.01, -0.045, self.cube_half_size[2]])
+            xyz = np.array([0.0, 0.0, self.cube_half_size[2]])
             ori = 0.0
             q = euler2quat(0, 0, ori)
         self.obj.set_pose(Pose(xyz, q))

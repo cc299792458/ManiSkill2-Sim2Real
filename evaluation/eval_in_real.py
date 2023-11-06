@@ -7,6 +7,7 @@ import gym
 import mani_skill2.envs
 from mani_skill2.utils.wrappers import RecordEpisode
 from mani_skill2.utils.kinematics_helper import PartialKinematicModel, compute_inverse_kinematics
+from mani_skill2.utils.sapien_utils import vectorize_pose
 
 import time
 from xarm import XArmAPI
@@ -113,7 +114,8 @@ def evaluate(n, agent, eval_envs, device):
     return result
 
 class RealXarm:
-    def __init__(self, ip, control_freq=20, mode='position', env_name='PickCube'):
+    def __init__(self, env, ip, control_freq=20, mode='position_pos', env_name='PickCube'):
+        self.env = env
         self.ip = ip
         self.control_freq = control_freq
         self.duration = 1 / control_freq
@@ -132,7 +134,9 @@ class RealXarm:
         self.arm.set_servo_angle(angle=qpos[:7], is_radian=True, wait=True, speed=SPEED)
         self.arm.set_gripper_position(850, wait=True, speed=SPEED)
         time.sleep(1)
-        if self.mode == 'position':
+        if self.mode =='position_pos':
+            self.translation_scale = 100
+        elif self.mode == 'position_pose':
             self.translation_scale = 100
             self.axangle_scale = 0.1
         elif self.mode == 'impedance':
@@ -175,7 +179,23 @@ class RealXarm:
         self.kinematic_model = PartialKinematicModel(self.articulation, self.start_joint_name, self.end_joint_name)
     
     def step(self, action):
-        if self.mode == 'position':
+        if self.mode =='position_pos':
+            self.arm.set_gripper_position(self._preprocess_gripper_action(action[3]), wait=True)
+            self.env.agent.robot.set_qpos(self.qpos)
+            # tcp_at_base = self.tcp_pose[0:3]
+            # tcp_at_base[0] += 0.4638637
+            tcp_pose_at_base = self.tcp_pose_at_base
+            cur_tcp_pose = Pose(p=tcp_pose_at_base.p, q=tcp_pose_at_base.q)
+            delta_tcp_pose = Pose(p=action[0:3] * 0.1, q=[1.0, 0.0, 0.0, 0.0])
+            target_tcp_pose = cur_tcp_pose * delta_tcp_pose
+            target_qpos = self.env.agent.controller.controllers['arm'].compute_ik(target_tcp_pose)
+            self.arm.set_servo_angle(angle=target_qpos, is_radian=True, wait=True)
+            
+            # delta_tcp_pose = self._preprocess_arm_action(action[0:3])
+            # ret_arm = self.arm.set_tool_position(
+            #     *delta_tcp_pose.p, *quat2euler(delta_tcp_pose.q, axes='sxyz'),
+            #     is_radian=True, wait=True)
+        elif self.mode == 'position_pose':
             self.arm.set_gripper_position(self._preprocess_gripper_action(action[6]), wait=True)
             delta_tcp_pose = self._preprocess_arm_action(action[0:6])
             ret_arm = self.arm.set_tool_position(
@@ -186,7 +206,11 @@ class RealXarm:
             self.arm.set_gripper_position(self._preprocess_gripper_action(action[3]), is_sync=False, speed=SPEED, wait=False)
     
     def _preprocess_arm_action(self, arm_action):
-        if self.mode == 'position':
+        if self.mode =='position_pos':
+            delta_tcp_pose = Pose(p=arm_action * self.translation_scale,  # in milimeters
+                                  q=np.array([1.0, 0.0, 0.0, 0.0]))
+            return delta_tcp_pose
+        elif self.mode == 'position_pose':
             cur_tcp_pose = Pose(p=self.tcp_pose[0:3] * self.translation_scale, q=self.tcp_pose[3:])
             axangle = arm_action[3:6]
             rot_angle = np.linalg.norm(axangle)
@@ -208,7 +232,8 @@ class RealXarm:
 
     def get_obs(self):
         if self.env_name == 'PickCube':
-            tcp_pose = self.tcp_pose
+            tcp_pose = vectorize_pose(self.tcp_pose)        # tcp pose should be calculated by virtual env
+
             goal_pos = self.goal_pos
             tcp_to_goal_pos = goal_pos - tcp_pose[0:3]
             obj_pose = self.obj_pose
@@ -238,20 +263,29 @@ class RealXarm:
     
     @property
     def tcp_pose(self):
-        """Get TCP pose in world frame
-        :return pose: If unit_in_mm, position unit is mm. Else, unit is m.
+        """Use the fk of simulation to calculate
         """
-        _, (qpos, qvel, effort) = self.arm.get_joint_states(is_radian=True)
-        _, base_to_tcp = self.arm.get_forward_kinematics(
-            qpos, input_is_radian=True, return_is_radian=True
-        )
-        base_to_tcp = np.asarray(base_to_tcp)
-        base_to_tcp_pose = np.hstack([base_to_tcp[:3] / 1000, euler2quat(*base_to_tcp[3:], axes='sxyz')])
-        
-        tcp_pose = base_to_tcp_pose
-        tcp_pose[0] -= 0.4638637
+        self.env.agent.robot.set_qpos(self.qpos)
+        tcp_pose = self.env.agent.controller.controllers['arm'].ee_pose
 
         return tcp_pose
+        # _, base_to_tcp = self.arm.get_forward_kinematics(
+        #     qpos, input_is_radian=True, return_is_radian=True
+        # )
+        # base_to_tcp = np.asarray(base_to_tcp)
+        # base_to_tcp_pose = np.hstack([base_to_tcp[:3] / 1000, euler2quat(*base_to_tcp[3:], axes='sxyz')])
+        
+        # tcp_pose = base_to_tcp_pose
+        # tcp_pose[0] -= 0.4638637
+
+        # return tcp_pose
+
+    @property
+    def tcp_pose_at_base(self):
+        self.env.agent.robot.set_qpos(self.qpos)
+        tcp_pose_at_base = self.env.agent.controller.controllers['arm'].ee_pose_at_base
+
+        return tcp_pose_at_base
 
     @property
     def goal_pos(self):
@@ -263,7 +297,8 @@ class RealXarm:
         # *[0.01, -0.045]*
         # [0.0, 0.0, 45], [0.02, 0.02, 45], [-0.035, -0.02, 30], [0.035, -0.03]
         # return np.array([0.035, -0.03, 0.02, 0.9659258, 0.0, 0.0, 0.258819])
-        return np.array([0.01, -0.045, 0.02, 1.0, 0.0, 0.0, 0.0])
+        # return np.array([0.05510862, 0.05108298, 0.02, 0.9238795, 0.0, 0.0, 0.3826834])
+        return np.array([-0.35, -0.35, 0.02, 1.0, 0.0, 0.0, 0.0])
 
     @property
     def obj_grasped(self):
@@ -276,7 +311,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     env_id = "PickCube-v3"
     seed = 0
-    control_mode = 'constvel_ee_delta_pose'
+    control_mode = 'constvel_ee_delta_pos'
     video_dir = None
     num_eval_envs = 1
     kwargs = {'context': 'forkserver'}
@@ -291,20 +326,23 @@ if __name__ == '__main__':
     agent.load_state_dict(ckpt['actor'])
 
     ##### Instantiate realrobot #####
-    robot = RealXarm(ip="192.168.1.229", mode='position')
+    virtual_envs = gym.make(env_id, reward_mode='dense', obs_mode='state', control_mode=control_mode)
+    robot = RealXarm(env=virtual_envs, ip="192.168.1.229", mode='position_pos')
     # robot.step(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]))
     ##### Loop ####
     
     obs_sim = eval_envs.reset()
     flag = False
-    for _ in range(3):
+    while True:
         with torch.no_grad():
             obs = robot.get_obs()
-            if flag == False:
-                obs[20], obs[21] = -obs[20], -obs[21]
-                flag = True
+            # if flag == False:
+            #     obs[20], obs[21] = -obs[20], -obs[21]
+            #     flag = True
+            # obs[20], obs[21] = -obs[20], -obs[21]
             # obs_sim = eval_envs.reset()
             # diff = np.abs(obs - obs_sim)
             action = agent.get_eval_action(torch.Tensor(obs).to(device)).cpu().numpy()
+            # obs_sim, rew, done, info = eval_envs.step(action[np.newaxis, :])
             robot.step(action)
-            obs_sim, rew, done, info = eval_envs.step(action)
+            # obs_sim, rew, done, info = eval_envs.step(action)
