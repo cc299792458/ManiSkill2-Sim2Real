@@ -253,7 +253,7 @@ def evaluate(n, agent, eval_envs, device):
 if __name__ == '__main__':
     ##### Arguments #####
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    env_id = "PegInsertionSide2D-v0"
+    env_id = "PegInsertionSide2D-v1"
     seed = 0
     control_mode = 'pd_ee_vel_xy'
     video_dir = None
