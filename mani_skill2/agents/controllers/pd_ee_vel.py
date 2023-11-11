@@ -96,6 +96,29 @@ class PDEEVelPosControllerConfig(ControllerConfig):
     normalize_action: bool = True
     controller_cls = PDEEVelPosController
 
+class PDEEVelXYController(PDEEVelPosController):
+    config: "PDEEVelXYControllerConfig"
+
+    def _initialize_action_space(self):
+        low = np.float32(np.broadcast_to(self.config.lower, 2))
+        high = np.float32(np.broadcast_to(self.config.upper, 2))
+        self.action_space = spaces.Box(low, high, dtype=np.float32)
+
+    def _preprocess_action(self, action: np.ndarray):
+        return np.hstack([super()._preprocess_action(action), np.zeros([1])])
+    
+@dataclass
+class PDEEVelXYControllerConfig(ControllerConfig):
+    lower: Union[float, Sequence[float]]
+    upper: Union[float, Sequence[float]]
+    limit: Union[float, Sequence[float]]
+    stiffness: Union[float, Sequence[float]]
+    damping: Union[float, Sequence[float]]
+    force_limit: Union[float, Sequence[float]] = 1e10
+    friction: Union[float, Sequence[float]] = 0.0
+    ee_link: str = None
+    normalize_action: bool = True
+    controller_cls = PDEEVelXYController
 
 class PDEEVelPoseController(PDEEVelPosController):
     config: "PDEEVelPoseControllerConfig"

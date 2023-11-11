@@ -18,6 +18,8 @@ from .pd_base_vel import PDBaseVelController, PDBaseVelControllerConfig
 from .pd_ee_vel import (
     PDEEVelPosController, 
     PDEEVelPosControllerConfig,
+    PDEEVelXYController,
+    PDEEVelXYControllerConfig,
     PDEEVelPoseController,
     PDEEVelPoseControllerConfig,
 )
