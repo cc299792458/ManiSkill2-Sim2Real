@@ -823,7 +823,7 @@ class PegInsertionSide2DEnv_v0(PegInsertionSideEnv_v4):
         
         xy = np.array([-0.1, -0.2])
         pos = np.hstack([xy, self.peg_half_size[2]])
-        ori = np.pi
+        ori = 0.0
         quat = euler2quat(0, 0, ori)
         self.box.set_pose(Pose(pos, quat))
 
@@ -881,11 +881,23 @@ class PegInsertionSide2DEnv_v0(PegInsertionSideEnv_v4):
         
         return ret
 
+    def has_peg_inserted(self):
+        # Only head position is used in fact
+        peg_head_pose = self.peg.pose.transform(self.peg_head_offset)
+        box_hole_pose = self.box_hole_pose
+        peg_head_pos_at_hole = (box_hole_pose.inv() * peg_head_pose).p
+        # x-axis is hole direction
+        x_flag = -0.015 <= peg_head_pos_at_hole[0]
+        y_flag = (
+            -self.box_hole_radius <= peg_head_pos_at_hole[1] <= self.box_hole_radius
+        )
+        return (x_flag and y_flag), peg_head_pos_at_hole
+
     def compute_dense_reward(self, info, **kwargs):
         reward = 0.0
 
         if info["success"]:
-            reward = 7.25 + 1
+            reward = 6.25 + 1
         else:
             # reaching reward
             gripper_pos = self.tcp.pose.p
@@ -907,10 +919,9 @@ class PegInsertionSide2DEnv_v0(PegInsertionSideEnv_v4):
                 peg_head_pos_at_hole = (box_hole_pose.inv() * peg_head_pose).p
 
                 insertion_reward = 1 - np.tanh(5.0 * abs(self.peg_half_length - peg_head_pos_at_hole[0])) # (0, 1)
-                align_reward_y = 1 - np.tanh(10.0 * abs(peg_head_pos_at_hole[1])) # (0, 1)
-                align_reward_z = 1 - np.tanh(10.0 * abs(peg_head_pos_at_hole[2])) # (0, 1) 
+                align_reward_y = 1 - np.tanh(10.0 * abs(peg_head_pos_at_hole[1])) # (0, 1) 
                 
-                reward += insertion_reward * 2 + align_reward_y + align_reward_z
+                reward += insertion_reward * 2 + align_reward_y
 
                 peg_normal = self.peg.pose.transform(Pose([0,0,1])).p - self.peg.pose.p
                 hole_normal = box_hole_pose.transform(Pose([0,0,1])).p - box_hole_pose.p
