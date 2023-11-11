@@ -160,7 +160,6 @@ class ConstVelEEPosControllerConfig(ControllerConfig):
     normalize_action: bool = True
     controller_cls = ConstVelEEPosController
 
-
 class ConstVelEEPoseController(PDEEPoseController):
     config: "ConstVelEEPoseControllerConfig"
 
@@ -280,3 +279,44 @@ class ConstVelEEPoseControllerConfig(ControllerConfig):
     interpolate: bool = False
     normalize_action: bool = True
     controller_cls = ConstVelEEPoseController
+
+
+class ConstVelEEXYController(ConstVelEEPosController):
+    config: "ConstVelEEXYControllerConfig"
+    def _initialize_action_space(self):
+        low = np.float32(np.broadcast_to(self.config.pos_lower, 2))
+        high = np.float32(np.broadcast_to(self.config.pos_upper, 2))
+        self.action_space = spaces.Box(low, high, dtype=np.float32)
+
+    def compute_target_pose(self, prev_ee_pose_at_base, action):
+        # Keep the current rotation and change the position
+        if self.config.use_delta:
+            delta_pose = sapien.Pose(np.hstack([action, np.zeros([1])]))
+
+            if self.config.frame == "base":
+                target_pose = delta_pose * prev_ee_pose_at_base
+            elif self.config.frame == "ee":
+                target_pose = prev_ee_pose_at_base * delta_pose
+            else:
+                raise NotImplementedError(self.config.frame)
+        else:
+            assert self.config.frame == "base", self.config.frame
+            target_pose = sapien.Pose(action)
+
+        return target_pose
+
+@dataclass
+class ConstVelEEXYControllerConfig(ControllerConfig):
+    pos_lower: Union[float, Sequence[float]]
+    pos_upper: Union[float, Sequence[float]]
+    stiffness: Union[float, Sequence[float]]
+    damping: Union[float, Sequence[float]]
+    force_limit: Union[float, Sequence[float]] = 1e10
+    friction: Union[float, Sequence[float]] = 0.0
+    ee_link: str = None
+    frame: str = "ee"  # [base, ee, ee_align]
+    use_delta: bool = True
+    use_target: bool = False
+    interpolate: bool = False
+    normalize_action: bool = True
+    controller_cls = ConstVelEEXYController

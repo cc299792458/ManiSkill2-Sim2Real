@@ -153,6 +153,17 @@ class XArmDefaultConfig:
             use_target=self.arm_use_target,
             interpolate=True,
         )
+        arm_constvel_ee_delta_xy = ConstVelEEXYControllerConfig(
+            self.arm_joint_names,
+            -0.1,
+            0.1,
+            self.arm_stiffness,
+            self.arm_damping,
+            self.arm_force_limit,
+            ee_link=self.ee_link_name,
+            use_target=self.arm_use_target,
+            interpolate=True,
+        )
 
         # -------------------------------------------------------------------------- #
         # Gripper
@@ -183,6 +194,9 @@ class XArmDefaultConfig:
             ),
             constvel_ee_delta_pose=dict(
                 arm=arm_constvel_ee_delta_pose, gripper=gripper_pd_joint_pos
+            ),
+            constvel_ee_delta_xy=dict(
+                arm=arm_constvel_ee_delta_xy, gripper=gripper_pd_joint_pos
             ),
         )
 

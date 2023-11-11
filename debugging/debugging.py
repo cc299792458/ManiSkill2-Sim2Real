@@ -4,7 +4,9 @@ import numpy as np
 import mani_skill2.envs 
 
 
-env = gym.make(id="StackCube-v3",
-               control_mode='constvel_ee_delta_pos',)
+env = gym.make(id="PegInsertionSide2D-v3",
+               control_mode='constvel_ee_delta_xy',)
 obs = env.reset()
-env.step(np.array([0.0, 0.0, 0.0, 0.0]))
+while True:
+    env.render(mode="human")
+    env.step(np.array([0.0, 0.0, 1.0]))
