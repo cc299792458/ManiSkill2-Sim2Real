@@ -950,7 +950,7 @@ class PegInsertionSide2DEnv_v1(PegInsertionSide2DEnv_v0):
                 gripper_pos = self.tcp.pose.p
                 peg_head_pose = self.peg.pose.transform(self.peg_head_offset)
                 head_pos, center_pos = peg_head_pose.p, self.peg.pose.p
-                grasp_prepos = center_pos - (head_pos - center_pos) * 2 # hack a grasp point
+                grasp_prepos = center_pos - (head_pos - center_pos) * 1.5 # hack a grasp point
                 gripper_to_peg_dist = np.linalg.norm(gripper_pos - grasp_prepos)
                 reaching_reward = 1 - np.tanh(10.0 * gripper_to_peg_dist)
                 reward += reaching_reward
@@ -991,3 +991,19 @@ class PegInsertionSide2DEnv_v1(PegInsertionSide2DEnv_v0):
                 reward += cos_axis
 
         return reward
+    
+@register_env("PegInsertionSide2D-v2", max_episode_steps=200)
+class PegInsertionSide2DEnv_v2(PegInsertionSide2DEnv_v1):
+    def _initialize_actors(self):
+        xy = self._episode_rng.uniform([-0.2, -0.25], [-0.2, -0.15])
+        pos = np.hstack([xy, self.peg_half_size[2]])
+        # ori = np.pi + self._episode_rng.uniform(-np.pi / 6, np.pi / 6)
+        ori = np.pi
+        quat = euler2quat(0, 0, ori)
+        self.peg.set_pose(Pose(pos, quat))
+        
+        xy = np.array([-0.4, -0.2])
+        pos = np.hstack([xy, self.peg_half_size[2]])
+        ori = np.pi
+        quat = euler2quat(0, 0, ori)
+        self.box.set_pose(Pose(pos, quat))
