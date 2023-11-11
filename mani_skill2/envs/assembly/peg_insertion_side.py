@@ -1007,3 +1007,9 @@ class PegInsertionSide2DEnv_v2(PegInsertionSide2DEnv_v1):
         ori = np.pi
         quat = euler2quat(0, 0, ori)
         self.box.set_pose(Pose(pos, quat))
+    
+    def evaluate(self, **kwargs) -> dict:
+        is_grasped = self.agent.check_grasp(self.peg)
+        success, peg_head_pos_at_hole = self.has_peg_inserted()
+        success = success and is_grasped
+        return dict(success=success, peg_head_pos_at_hole=peg_head_pos_at_hole)
