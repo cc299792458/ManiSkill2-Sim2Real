@@ -21,7 +21,7 @@ import sapien.core as sapien
 
 LOG_STD_MAX = 2
 LOG_STD_MIN = -5
-SPEED = 6 / 57  # why?
+SPEED = 12 / 57  # why?
 
 class Actor(nn.Module):
     def __init__(self, env):
@@ -270,7 +270,7 @@ class RealXarm:
 
         return tcp_pose
         # _, base_to_tcp = self.arm.get_forward_kinematics(
-        #     qpos, input_is_radian=True, return_is_radian=True
+        #     self.qpos, input_is_radian=True, return_is_radian=True
         # )
         # base_to_tcp = np.asarray(base_to_tcp)
         # base_to_tcp_pose = np.hstack([base_to_tcp[:3] / 1000, euler2quat(*base_to_tcp[3:], axes='sxyz')])
@@ -278,6 +278,8 @@ class RealXarm:
         # tcp_pose = base_to_tcp_pose
         # tcp_pose[0] -= 0.4638637
 
+        # tcp_pose = Pose(p=tcp_pose[0:3], q=tcp_pose[3:7])
+        
         # return tcp_pose
 
     @property
@@ -298,7 +300,7 @@ class RealXarm:
         # [0.0, 0.0, 45], [0.02, 0.02, 45], [-0.035, -0.02, 30], [0.035, -0.03]
         # return np.array([0.035, -0.03, 0.02, 0.9659258, 0.0, 0.0, 0.258819])
         # return np.array([0.05510862, 0.05108298, 0.02, 0.9238795, 0.0, 0.0, 0.3826834])
-        return np.array([-0.35, -0.35, 0.02, 1.0, 0.0, 0.0, 0.0])
+        return np.array([-0.35, -0.25, 0.02, 1.0, 0.0, 0.0, 0.0])
 
     @property
     def obj_grasped(self):
