@@ -1078,5 +1078,5 @@ class PegInsertionSide2DEnv_v3(PegInsertionSide2DEnv_v2):
     def compute_dense_reward(self, info, **kwargs):
         reward = super().compute_dense_reward(info, **kwargs)
         if info["time_out"]:
-            reward -= 0.5
+            reward -= 0.0
         return reward
