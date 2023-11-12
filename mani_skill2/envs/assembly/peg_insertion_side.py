@@ -946,7 +946,7 @@ class PegInsertionSide2DEnv_v1(PegInsertionSide2DEnv_v0):
         else:
             tcp_at_peg = (self.peg.pose.inv() * self.tcp.pose).p
             y_dist = np.abs(tcp_at_peg[1])
-            if y_dist > 0.001:
+            if y_dist > 0.01:
                 # reaching reward 0
                 gripper_pos = self.tcp.pose.p
                 peg_head_pose = self.peg.pose.transform(self.peg_head_offset)
@@ -1078,5 +1078,5 @@ class PegInsertionSide2DEnv_v3(PegInsertionSide2DEnv_v2):
     def compute_dense_reward(self, info, **kwargs):
         reward = super().compute_dense_reward(info, **kwargs)
         if info["time_out"]:
-            reward -= 2
+            reward -= 0.5
         return reward
