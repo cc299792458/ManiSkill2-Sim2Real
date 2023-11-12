@@ -1035,7 +1035,7 @@ class PegInsertionSide2DEnv_v3(PegInsertionSide2DEnv_v2):
         self.peg_half_length = length
         self.peg_radius = radius
         builder = self._scene.create_actor_builder()
-        mat = self._scene.create_physical_material(static_friction=0.1, dynamic_friction=0.1, restitution=0.0)
+        mat = self._scene.create_physical_material(static_friction=1.0, dynamic_friction=1.0, restitution=0.0)
         builder.add_box_collision(half_size=[length, radius, radius], material=mat)
 
         # peg head
