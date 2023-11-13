@@ -1017,15 +1017,15 @@ class PegInsertionSide2DEnv_v2(PegInsertionSide2DEnv_v1):
     
 @register_env("PegInsertionSide2D-v3", max_episode_steps=200)
 class PegInsertionSide2DEnv_v3(PegInsertionSide2DEnv_v2):
-    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0.02, 
-                 domain_rand_params=None, **kwargs):
-        if domain_rand_params is not None:
-            self.domain_rand = True
-            self.size_range = domain_rand_params['size_range']
-            self.obs_noise = domain_rand_params['obs_noise']
-        else:
-            self.domain_rand = False
-        super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, **kwargs)
+    # def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0.02, 
+    #              domain_rand_params=None, **kwargs):
+    #     if domain_rand_params is not None:
+    #         self.domain_rand = True
+    #         self.size_range = domain_rand_params['size_range']
+    #         self.obs_noise = domain_rand_params['obs_noise']
+    #     else:
+    #         self.domain_rand = False
+    #     super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, **kwargs)
 
     def _load_actors(self):
         self._add_ground(render=self.bg_name is None)
@@ -1080,3 +1080,28 @@ class PegInsertionSide2DEnv_v3(PegInsertionSide2DEnv_v2):
         if info["time_out"]:
             reward -= 0.0
         return reward
+    
+@register_env("PegInsertionSide2D-v4", max_episode_steps=200)
+class PegInsertionSide2DEnv_v4(PegInsertionSide2DEnv_v3):
+    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0.02, 
+                 domain_rand_params=dict(obs_noise=0.01), **kwargs):
+        if domain_rand_params is not None:
+            self.domain_rand = True
+            self.obs_noise = domain_rand_params['obs_noise']
+        else:
+            self.domain_rand = False
+        super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, **kwargs)
+
+    def _get_obs_extra(self) -> OrderedDict:
+        """
+            Add observation noise to peg.
+        """
+        ret = super()._get_obs_extra()
+        if self.domain_rand:
+            xy_noise = self.generate_noise_for_pos(size=2)
+            ret['peg_pose'][0:2] += xy_noise
+        return ret
+    
+    def generate_noise_for_pos(self, size):
+        noise = np.random.uniform(-self.obs_noise, self.obs_noise, size=size)
+        return noise
