@@ -279,7 +279,7 @@ if __name__ == '__main__':
     eval_envs = gym.vector.AsyncVectorEnv([make_env(env_id, seed, control_mode, video_dir) for i in range(num_eval_envs)], **kwargs)
 
     ##### Load actor #####
-    ckpt_path = '/home/chichu/Documents/Sapien/ManiSkill2-Sim2Real/evaluation/ckpt/peginsertionside2d.pt'
+    ckpt_path = '/home/chichu/Documents/Sapien/ManiSkill2-Sim2Real/evaluation/ckpt/peginsertionside2d_last.pt'
     ckpt = torch.load(ckpt_path)
     agent = Actor(eval_envs).to(device)
     agent.load_state_dict(ckpt['actor'])

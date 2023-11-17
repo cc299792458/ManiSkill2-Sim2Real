@@ -4,7 +4,7 @@ import numpy as np
 import mani_skill2.envs 
 
 
-env = gym.make(id="PegInsertionSide2D-v3",
+env = gym.make(id="PegInsertionSide2D-v4",
                control_mode='constvel_ee_delta_xy',)
 obs = env.reset()
 while True:

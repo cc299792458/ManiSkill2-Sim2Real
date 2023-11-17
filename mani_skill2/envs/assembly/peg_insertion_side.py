@@ -1084,10 +1084,12 @@ class PegInsertionSide2DEnv_v3(PegInsertionSide2DEnv_v2):
 @register_env("PegInsertionSide2D-v4", max_episode_steps=200)
 class PegInsertionSide2DEnv_v4(PegInsertionSide2DEnv_v3):
     def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0.02, 
-                 domain_rand_params=dict(obs_noise=0.01), **kwargs):
+                 domain_rand_params=dict(obs_noise=0.0075, joint_noise=0.01, tcp_noise=0.005), **kwargs):
         if domain_rand_params is not None:
             self.domain_rand = True
             self.obs_noise = domain_rand_params['obs_noise']
+            self.joint_noise = domain_rand_params['joint_noise']
+            self.tcp_noise = domain_rand_params['tcp_noise']
         else:
             self.domain_rand = False
         super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, **kwargs)
@@ -1098,10 +1100,20 @@ class PegInsertionSide2DEnv_v4(PegInsertionSide2DEnv_v3):
         """
         ret = super()._get_obs_extra()
         if self.domain_rand:
-            xy_noise = self.generate_noise_for_pos(size=2)
+            xy_noise = self.generate_noise(scale=self.obs_noise, size=2)
             ret['peg_pose'][0:2] += xy_noise
+            tcp_noise = self.generate_noise(scale=self.tcp_noise, size=2)
+            ret['tcp_pose'][0:2] += tcp_noise
+
         return ret
     
-    def generate_noise_for_pos(self, size):
-        noise = np.random.uniform(-self.obs_noise, self.obs_noise, size=size)
+    def _get_obs_agent(self):
+        ret =  super()._get_obs_agent()
+        if self.domain_rand:
+            ret['qpos'][0:7] += self.generate_noise(scale=self.joint_noise, size=7)
+        
+        return ret
+    
+    def generate_noise(self, scale, size):
+        noise = np.random.uniform(-scale, scale, size=size)
         return noise
