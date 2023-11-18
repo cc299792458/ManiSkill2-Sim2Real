@@ -268,7 +268,7 @@ def evaluate(n, agent, eval_envs, device):
 if __name__ == '__main__':
     ##### Arguments #####
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    env_id = "PegInsertionSide2D-v3"
+    env_id = "PegInsertionSide2D-v4"
     seed = 0
     control_mode = 'constvel_ee_delta_xy'
     video_dir = None
@@ -279,7 +279,7 @@ if __name__ == '__main__':
     eval_envs = gym.vector.AsyncVectorEnv([make_env(env_id, seed, control_mode, video_dir) for i in range(num_eval_envs)], **kwargs)
 
     ##### Load actor #####
-    ckpt_path = '/home/chichu/Documents/Sapien/ManiSkill2-Sim2Real/evaluation/ckpt/peginsertionside2d_last.pt'
+    ckpt_path = '/home/chichu/Documents/Sapien/ManiSkill2-Sim2Real/evaluation/ckpt/peginsertion2d.pt'
     ckpt = torch.load(ckpt_path)
     agent = Actor(eval_envs).to(device)
     agent.load_state_dict(ckpt['actor'])

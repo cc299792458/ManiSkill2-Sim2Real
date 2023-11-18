@@ -120,9 +120,8 @@ class RealXarm:
         self.control_freq = control_freq
         self.duration = 1 / control_freq
         self.mode = mode
-        self.env_name = 'PickCube'
+        self.env_name = env_name
         self._init_arm()
-        
 
     def _init_arm(self):
         self.arm = XArmAPI(self.ip)
@@ -130,8 +129,12 @@ class RealXarm:
         self.arm.set_mode(0)
         self.arm.set_state(state=0)
         self.arm.set_gripper_enable(True)
-        qpos = np.array([0, 0, 0, np.pi / 3, 0, np.pi / 3, -np.pi / 2])
-        self.arm.set_servo_angle(angle=qpos[:7], is_radian=True, wait=True, speed=SPEED)
+        if self.env_name == 'PickCube':
+            qpos = np.array([0, 0, 0, np.pi / 3, 0, np.pi / 3, -np.pi / 2])
+            self.arm.set_servo_angle(angle=qpos[:7], is_radian=True, wait=True, speed=SPEED)
+        if self.env_name == 'peginsertion2d':
+            qpos = np.array([0.0, 0.0, 0.0, np.pi / 6, 0.0, np.pi / 6, 0.0])
+            self.arm.set_servo_angle(angle=qpos[:7], is_radian=True, wait=True, speed=SPEED)
         self.arm.set_gripper_position(850, wait=True, speed=SPEED)
         time.sleep(1)
         if self.mode =='position_pos':
@@ -156,22 +159,6 @@ class RealXarm:
         robot_builder = loader.load_file_as_articulation_builder(filename)
         self.articulation = robot_builder.build(fix_root_link=True)
         self.articulation.set_name(robot_name)
-
-        # robot_arm_control_params = np.array([0, 300, 300])
-        # robot_arm_control_params = np.array([200000, 40000, 500])  # This PD is far larger than real to improve stability
-        # if "xarm" in robot_name:
-        #     arm_joint_names = [f"joint{i}" for i in range(1, 8)]
-        #     for joint in self.articulation.get_active_joints():
-        #         name = joint.get_name()
-        #         if name in arm_joint_names:
-        #             joint.set_drive_property(*(1 * robot_arm_control_params), mode="force")
-
-        # mat = self.scene.engine.create_physical_material(1.5, 1, 0.01)
-        # for link in robot.get_links():
-        #     for geom in link.get_collision_shapes():
-        #         geom.min_patch_radius = 0.02
-        #         geom.patch_radius = 0.04
-        #         geom.set_physical_material(mat)
     
     def _init_vel_ik(self):
         self.start_joint_name = self.articulation.get_joints()[1].get_name()
@@ -201,6 +188,17 @@ class RealXarm:
             ret_arm = self.arm.set_tool_position(
                 *delta_tcp_pose.p, *quat2euler(delta_tcp_pose.q, axes='sxyz'),
                 is_radian=True, wait=True)
+        elif self.mode == 'position_xy':
+            self.arm.set_gripper_position(self._preprocess_gripper_action(action[2]), wait=True)
+            self.env.agent.robot.set_qpos(self.qpos)
+            # tcp_at_base = self.tcp_pose[0:3]
+            # tcp_at_base[0] += 0.4638637
+            tcp_pose_at_base = self.tcp_pose_at_base
+            cur_tcp_pose = Pose(p=tcp_pose_at_base.p, q=tcp_pose_at_base.q)
+            delta_tcp_pose = Pose(p=np.hstack([action[0:2], np.zeros([1])]) * 0.1, q=[1.0, 0.0, 0.0, 0.0])
+            target_tcp_pose = cur_tcp_pose * delta_tcp_pose
+            target_qpos = self.env.agent.controller.controllers['arm'].compute_ik(target_tcp_pose)
+            self.arm.set_servo_angle(angle=target_qpos, is_radian=True, wait=True)
         elif self.mode == 'impedance':
             self.arm.vc_set_joint_velocity(self._preprocess_arm_action(action[0:3]), is_radian=True, is_sync=True, duration=self.duration)
             self.arm.set_gripper_position(self._preprocess_gripper_action(action[3]), is_sync=False, speed=SPEED, wait=False)
@@ -242,6 +240,15 @@ class RealXarm:
             obs = np.hstack([self.qpos, self.qvel, tcp_pose, goal_pos, tcp_to_goal_pos,
                             obj_pose, tcp_to_obj_pos, obj_to_goal_pos, self.obj_grasped])
             return obs
+        else:
+            tcp_pose = vectorize_pose(self.tcp_pose)
+            peg_x = float(input('x:'))
+            peg_y = float(input('y:'))
+            peg_pose = np.array([peg_x, peg_y, 0.025, 0.0, 0.0, 0.0, 1.0])
+            box_hole_pose = np.array([-0.4, -0.2, 0.025, 0.0, 0.0, 0.0, 1.0])
+
+            obs = np.hstack([self.qpos, self.qvel, tcp_pose, peg_pose, box_hole_pose, self.obj_grasped])
+            return obs
         
     def gripper_real_2_sim(self, gripper_dis):
         return gripper_dis * 5.249186 * 1e-5 + 2.49186 * 1e-5
@@ -254,7 +261,6 @@ class RealXarm:
 
         return np.hstack([qpos, [gripper_qpos, gripper_qpos]])
         
-
     @property
     def qvel(self):
         """Get xarm qvel in maniskill2 format"""
@@ -304,16 +310,17 @@ class RealXarm:
 
     @property
     def obj_grasped(self):
-        return 0.0
+        _, gripper_dis = self.arm.get_gripper_position()
+        return float(gripper_dis < 475)
 
     ##### Camera related #####
 
 if __name__ == '__main__':
     ##### Arguments #####
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    env_id = "PickCube-v3"
+    env_id = "PegInsertionSide2D-v4"
     seed = 0
-    control_mode = 'constvel_ee_delta_pos'
+    control_mode = 'constvel_ee_delta_xy'
     video_dir = None
     num_eval_envs = 1
     kwargs = {'context': 'forkserver'}
@@ -322,14 +329,14 @@ if __name__ == '__main__':
     eval_envs = gym.vector.AsyncVectorEnv([make_env(env_id, seed, control_mode, video_dir) for i in range(num_eval_envs)], **kwargs)
 
     ##### Load actor #####
-    ckpt_path = '/home/chichu/Documents/Sapien/ManiSkill2-Sim2Real/evaluation/ckpt/pickcube_position.pt'
+    ckpt_path = '/home/chichu/Documents/Sapien/ManiSkill2-Sim2Real/evaluation/ckpt/peginsertion2d.pt'
     ckpt = torch.load(ckpt_path)
     agent = Actor(eval_envs).to(device)
     agent.load_state_dict(ckpt['actor'])
 
     ##### Instantiate realrobot #####
     virtual_envs = gym.make(env_id, reward_mode='dense', obs_mode='state', control_mode=control_mode)
-    robot = RealXarm(env=virtual_envs, ip="192.168.1.229", mode='position_pos')
+    robot = RealXarm(env=virtual_envs, ip="192.168.1.212", mode='position_xy', env_name='peginsertion2d')
     # robot.step(np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]))
     ##### Loop ####
     
