@@ -196,6 +196,43 @@ class PickCubeEnv_v4(PickCubeEnv_v3):
         proprioception['qvel'] = proprioception['qvel'][:-2]
         return proprioception
 
+@register_env("GraspCube-v0", max_episode_steps=100)
+class GraspCubeEnv_v4(PickCubeEnv_v4):
+    def _get_obs_extra(self) -> OrderedDict:
+        """
+            Delete unneeded obs for grasp a cube
+        """
+        ret = super()._get_obs_extra()
+        del ret['goal_pos']
+        del ret['tcp_to_goal_pos']
+        del ret['obj_to_goal_pos']
+        del ret['is_grasped']
+
+        return ret
+
+    def compute_dense_reward(self, info, **kwargs):
+        reward = 0.0
+
+        if info["success"]:
+            reward += 2
+            return reward
+
+        tcp_to_obj_pos = self.obj.pose.p - self.tcp.pose.p
+        tcp_to_obj_dist = np.linalg.norm(tcp_to_obj_pos)
+        reaching_reward = 1 - np.tanh(5 * tcp_to_obj_dist)
+        reward += reaching_reward
+
+        return reward
+    
+    def evaluate(self, **kwargs):
+        is_grasped = self.agent.check_grasp(self.obj)
+        # is_robot_static = self.check_robot_static()
+        return dict(
+            is_grasped=is_grasped,
+            # is_robot_static=is_robot_static,
+            success=is_grasped,
+        )
+
 @register_env("LiftCube-v0", max_episode_steps=200)
 class LiftCubeEnv(PickCubeEnv):
     """Lift the cube to a certain height."""
