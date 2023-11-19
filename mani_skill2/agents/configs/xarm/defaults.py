@@ -94,8 +94,8 @@ class XArmDefaultConfig:
         )
         arm_pd_ee_vel_pos = PDEEVelPosControllerConfig(
             self.arm_joint_names,
-            -1.0,
-            1.0,
+            -0.3,
+            0.3,
             np.pi/2,
             self.arm_stiffness,
             self.arm_damping,
@@ -104,9 +104,9 @@ class XArmDefaultConfig:
         )
         arm_pd_ee_vel_pose = PDEEVelPoseControllerConfig(
             self.arm_joint_names,
-            -1.0,
-            1.0,
-            1.0,
+            -0.3,
+            0.3,
+            0.3,
             np.pi/2,
             self.arm_stiffness,
             self.arm_damping,
@@ -115,8 +115,8 @@ class XArmDefaultConfig:
         )
         arm_pd_ee_vel_xy = PDEEVelXYControllerConfig(
             self.arm_joint_names,
-            -0.5,
-            0.5,
+            -0.3,
+            0.3,
             np.pi,
             self.arm_stiffness,
             self.arm_damping,

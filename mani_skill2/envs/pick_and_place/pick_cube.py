@@ -197,7 +197,7 @@ class PickCubeEnv_v4(PickCubeEnv_v3):
         return proprioception
 
 @register_env("GraspCube-v0", max_episode_steps=100)
-class GraspCubeEnv_v4(PickCubeEnv_v4):
+class GraspCubeEnv_v0(PickCubeEnv_v4):
     def _get_obs_extra(self) -> OrderedDict:
         """
             Delete unneeded obs for grasp a cube
@@ -232,6 +232,16 @@ class GraspCubeEnv_v4(PickCubeEnv_v4):
             # is_robot_static=is_robot_static,
             success=is_grasped,
         )
+    
+@register_env("GraspCube-v1", max_episode_steps=100)
+class GraspCubeEnv_v1(GraspCubeEnv_v0):
+    def _get_obs_extra(self) -> OrderedDict:
+        ret = super()._get_obs_extra()
+        obs_noise = self._episode_rng.uniform(-0.01, 0.01, size=2)
+        ret['obj_pose'][0:2] += obs_noise
+        ret['tcp_to_obj_pos'][0:2] += obs_noise
+
+        return ret
 
 @register_env("LiftCube-v0", max_episode_steps=200)
 class LiftCubeEnv(PickCubeEnv):

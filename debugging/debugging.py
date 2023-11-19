@@ -4,7 +4,7 @@ import numpy as np
 import mani_skill2.envs 
 
 
-env = gym.make(id="GraspCube-v0",
+env = gym.make(id="GraspCube-v1",
                control_mode='pd_ee_vel_pos',)
 obs = env.reset()
 while True:
