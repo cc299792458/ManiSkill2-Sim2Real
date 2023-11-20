@@ -81,6 +81,19 @@ class PDEEVelPosController(BaseController):
         self.set_drive_targets(self._target_qpos)
         self.set_drive_velocity_target(self._target_qvel)
 
+    @property
+    def ee_pos(self):
+        return self.ee_link.pose.p
+
+    @property
+    def ee_pose(self):
+        return self.ee_link.pose
+
+    @property
+    def ee_pose_at_base(self):
+        to_base = self.articulation.pose.inv()
+        return to_base.transform(self.ee_pose)
+
 
 
 @dataclass
