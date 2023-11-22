@@ -74,16 +74,203 @@ class Actor(nn.Module):
         self.action_bias = self.action_bias.to(device)
         return super().to(device)
 
-# def collect_episode_info(info, result=None):
-#     if result is None:
-#         result = defaultdict(list)
-#     for item in info:
-#         if "episode" in item.keys():
-#             print(f"global_step={global_step}, episodic_return={item['episode']['r']:.4f}, success={item['success']}")
-#             result['return'].append(item['episode']['r'])
-#             result['len'].append(item["episode"]["l"])
-#             result['success'].append(item['success'])
-#     return result
+
+import cv2
+import pyrealsense2 as rs
+import imageio
+import copy
+
+def  check_color(img,color):
+    if color == "R":
+        if img[0]>100:
+            if img[1]<60:
+                if img[2]<60:
+                    return True
+        if img[0]>120:
+            if img[1]<80:
+                if img[2]<80:
+                    return True
+    return False
+# def not_chess(color):
+#     if color[0]<120 and color[1]<120 and color[2]<120:
+#         return False
+#     if 180<color[0] and 180<color[1] and 180<color[2]:
+#         return False
+#     return True
+
+def is_chess(color):
+    threshold = 45
+    if np.abs(int(color[0])-int(color[1])) < threshold and np.abs(int(color[2])-int(color[1])) < threshold and np.abs(int(color[0])-int(color[2])) < threshold:
+        return True
+    return False
+    
+def get_real_XY(output_point_1,output_point_2):
+    theta = np.arctan(np.abs(output_point_2[1] - output_point_1[1]) / np.abs(output_point_2[0] - output_point_1[0]))
+    # beta = 90 - theta
+    # beta = np.arctan(np.abs(output_point_2[0] - output_point_1[0]) / np.abs(output_point_2[1] - output_point_1[1]))
+    length = 0.15 / 0.05 * 80#(np.abs(output_point_2[1] - output_point_1[1])**2 + np.abs(output_point_2[0] - output_point_1[0])**2)**0.5
+    width = length / 3
+    mid_point = (output_point_1 + output_point_2) / 2
+    delta_y = width / 2 * np.cos(theta)
+    delta_x = width / 2 * np.sin(theta)
+    x = mid_point[0] - delta_x
+    y = mid_point[1] - delta_y
+    # print((720-x)/80*0.05,y/80*0.05)
+    real_x = (x - 560) / 80 * 0.05 + (0.4669 - 0.464) 
+    real_y = -(y) / 80 * 0.05 - 0.0681
+    
+    return real_x, real_y, theta
+
+def get_pixel(color_image):
+    stop=False
+    for i in range(300):
+        i = 299 - i
+        if stop ==True: break
+        for j in range(450):
+            j = 449 - j
+            if stop ==True: break
+            if check_color(color_image[i,j],"R"):
+                x1=i
+                y1=j
+                stop = True
+                # print("corner 1", x1, y1)
+                # print("RGB 1", color_image[i,j])     
+    if stop == True:
+        for i in range(x1-20,x1+20):
+            for j in range(y1-20,y1+20):
+                color_image[i,j]=(0,0,0)
+    stop = False
+    for i in range(300):
+        if stop ==True: break
+        i = 299 - i
+        for j in range(450):
+            if stop ==True: break
+            j = 449 - j
+            if stop ==True: break
+            if check_color(color_image[i,j],"R"):
+                x2=i
+                y2=j
+                stop = True
+                # print("corner 2", x2, y2)
+                # print("RGB 2", color_image[i,j])
+
+    if stop == False:
+        return False, 0, 0, 0, 0
+    return stop, x1, y1, x2, y2
+
+def get_mean_pixel(color_image):
+    stop=False
+    for j in range(450):
+        if stop==True: break
+        for i in range(300):
+            if stop ==True: break
+            if check_color(color_image[i,j],"R"):
+                x1=i
+                y1=j
+                stop = True
+                color_image[i,j] = (0,0,0)
+                # print("corner 1", x1, y1)
+                # print("RGB 1", color_image[i,j])     
+    if stop == True:
+        total1 = 1
+        for i in range(x1-20,x1+20):
+            for j in range(y1-20,y1+20):
+                if check_color(color_image[i,j],"R"):
+                    x1+=i
+                    y1+=j
+                    color_image[i,j] = (0,0,0)
+                    total1 += 1
+        x1 = x1 / total1
+        y1 = y1 / total1
+
+    stop = False
+    for j in range(450):
+        j = 449 - j
+        if stop==True: break
+        for i in range(300):
+            i = 299 - i
+            if stop ==True: break
+            if check_color(color_image[i,j],"R"):
+                x2=i
+                y2=j
+                stop = True
+                # print("corner 2", x2, y2)
+                # print("RGB 2", color_image[i,j])
+    if stop == True:
+        total2 = 1
+        for i in range(x2-10,x2+10):
+            for j in range(y2-10,y2+10):
+                # print(i,j)
+                if check_color(color_image[i,j],"R"):
+                    x2+=i
+                    y2+=j
+                    color_image[i,j] = (0,0,0)
+                    total2 += 1
+        x2 = x2 / total2
+        y2 = y2 / total2
+
+    if stop == False:
+        return False, 0, 0, 0, 0
+    return stop, int(x1), int(y1), int(x2), int(y2)
+
+def initialize_realsense():
+    pipeline = rs.pipeline()
+    config = rs.config()
+    config.enable_stream(rs.stream.color, 1280, 720, rs.format.rgb8, 30)  # RGB流
+    profile = pipeline.start(config)
+    profile.get_device().sensors[1].set_option(rs.option.exposure, 86)
+    for _ in range(150):    
+        frames = pipeline.wait_for_frames()
+        color_frame = frames.get_color_frame()
+
+    return pipeline
+
+# pipeline = initialize_realsense()
+def get_pose():
+    pipeline = rs.pipeline()
+    config = rs.config()
+    config.enable_stream(rs.stream.color, 1280, 720, rs.format.rgb8, 30)  # RGB流
+    profile = pipeline.start(config)
+    profile.get_device().sensors[1].set_option(rs.option.exposure, 86)
+    for _ in range(150):    
+        frames = pipeline.wait_for_frames()
+        color_frame = frames.get_color_frame()
+    ret = False
+    while ret == False:
+        frames = pipeline.wait_for_frames()
+        color_frame = frames.get_color_frame()
+        color_image = np.asanyarray(color_frame.get_data())
+        img = copy.deepcopy(color_image)
+        color_image=color_image[225:525,450:900]
+        imageio.imsave("before.png",color_image)
+        stop = False
+        ret, x1, y1, x2, y2=get_pixel(color_image) 
+
+    H = np.load('/home/chichu/Downloads/H.npy')
+
+    #np.array and image are transposes
+    input_point_1 = np.array([y1+450,x1+225, 1])
+    output_point_1 = np.matmul(H, input_point_1)
+    output_point_1[0] /= output_point_1[2]
+    output_point_1[1] /= output_point_1[2]
+
+    #temp = output_point_1[0]
+    #output_point_1[0] = output_point_1[1]
+    #output_point_1[1] = temp
+
+    input_point_2 = np.array([y2+450,x2+225, 1])
+    output_point_2 = np.matmul(H, input_point_2)
+    output_point_2[0] /= output_point_2[2]
+    output_point_2[1] /= output_point_2[2]
+
+    #temp = output_point_2[0]
+    #output_point_2[0] = output_point_2[1]
+    #output_point_2[1] = temp
+
+    #print("output_point_1:", output_point_1[0:2])
+    #print("output_point_2:", output_point_2[0:2])
+
+    return get_real_XY(output_point_1,output_point_2)
 
 def make_env(env_id, seed, control_mode=None, video_dir=None):
     def thunk():
@@ -242,9 +429,11 @@ class RealXarm:
             return obs
         else:
             tcp_pose = vectorize_pose(self.tcp_pose)
-            peg_x = float(input('x:'))
-            peg_y = float(input('y:'))
-            peg_pose = np.array([peg_x, peg_y, 0.025, 0.0, 0.0, 0.0, 1.0])
+            peg_x, peg_y, theta = get_pose()
+            peg_q = euler2quat(0.0, 0.0, theta + np.pi)
+            print(peg_x, peg_y)
+            peg_p = np.array([peg_x, peg_y, 0.025])
+            peg_pose = np.hstack([peg_p, peg_q])
             box_hole_pose = np.array([-0.4, -0.2, 0.025, 0.0, 0.0, 0.0, 1.0])
 
             obs = np.hstack([self.qpos, self.qvel, tcp_pose, peg_pose, box_hole_pose, self.obj_grasped])
@@ -313,9 +502,8 @@ class RealXarm:
         _, gripper_dis = self.arm.get_gripper_position()
         return float(gripper_dis < 475)
 
-    ##### Camera related #####
-
 if __name__ == '__main__':
+    # print(get_pose())
     ##### Arguments #####
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     env_id = "PegInsertionSide2D-v4"
