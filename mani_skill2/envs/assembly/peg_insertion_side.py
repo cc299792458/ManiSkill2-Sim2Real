@@ -1084,7 +1084,7 @@ class PegInsertionSide2DEnv_v3(PegInsertionSide2DEnv_v2):
 @register_env("PegInsertionSide2D-v4", max_episode_steps=200)
 class PegInsertionSide2DEnv_v4(PegInsertionSide2DEnv_v3):
     def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0.02, 
-                 domain_rand_params=dict(obs_noise=0.005, joint_noise=0.01, tcp_noise=0.005), **kwargs):
+                 domain_rand_params=dict(obs_noise=0.005, joint_noise=0.01, tcp_noise=0.003), **kwargs):
         if domain_rand_params is not None:
             self.domain_rand = True
             self.obs_noise = domain_rand_params['obs_noise']
@@ -1120,7 +1120,9 @@ class PegInsertionSide2DEnv_v4(PegInsertionSide2DEnv_v3):
     
 @register_env("PegInsertionSide2D-v5", max_episode_steps=100)
 class PegInsertionSide2DEnv_v5(PegInsertionSide2DEnv_v4):
-    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0.02, domain_rand_params=dict(obs_noise=0.005, joint_noise=0.01, tcp_noise=0.005), **kwargs):
+    _clearance = 0.006
+
+    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0.02, domain_rand_params=dict(obs_noise=0.005, joint_noise=0.01, tcp_noise=0.003), **kwargs):
         super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, domain_rand_params=domain_rand_params, **kwargs)
 
         self.domain_rand = False
