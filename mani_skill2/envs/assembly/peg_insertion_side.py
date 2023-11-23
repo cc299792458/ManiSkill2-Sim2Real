@@ -1135,7 +1135,8 @@ class PegInsertionSide2DEnv_v5(PegInsertionSide2DEnv_v4):
         quat = euler2quat(0, 0, ori)
         self.peg.set_pose(Pose(pos, quat))
         
-        xy = np.array([-0.4, -0.2])
+        # xy = np.array([-0.4, -0.2])
+        xy = self._episode_rng.uniform([-0.45, -0.25], [-0.35, -0.15])
         pos = np.hstack([xy, self.peg_half_size[2]])
         ori = np.pi
         quat = euler2quat(0, 0, ori)
