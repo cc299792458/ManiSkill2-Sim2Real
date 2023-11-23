@@ -1084,7 +1084,7 @@ class PegInsertionSide2DEnv_v3(PegInsertionSide2DEnv_v2):
 @register_env("PegInsertionSide2D-v4", max_episode_steps=200)
 class PegInsertionSide2DEnv_v4(PegInsertionSide2DEnv_v3):
     def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0.02, 
-                 domain_rand_params=dict(obs_noise=0.0075, joint_noise=0.01, tcp_noise=0.005), **kwargs):
+                 domain_rand_params=dict(obs_noise=0.005, joint_noise=0.01, tcp_noise=0.005), **kwargs):
         if domain_rand_params is not None:
             self.domain_rand = True
             self.obs_noise = domain_rand_params['obs_noise']
@@ -1117,3 +1117,24 @@ class PegInsertionSide2DEnv_v4(PegInsertionSide2DEnv_v3):
     def generate_noise(self, scale, size):
         noise = np.random.uniform(-scale, scale, size=size)
         return noise
+    
+@register_env("PegInsertionSide2D-v5", max_episode_steps=100)
+class PegInsertionSide2DEnv_v5(PegInsertionSide2DEnv_v4):
+    def __init__(self, *args, robot="xarm7_d435", robot_init_qpos_noise=0.02, domain_rand_params=dict(obs_noise=0.005, joint_noise=0.01, tcp_noise=0.005), **kwargs):
+        super().__init__(*args, robot=robot, robot_init_qpos_noise=robot_init_qpos_noise, domain_rand_params=domain_rand_params, **kwargs)
+
+        self.domain_rand = False
+
+    def _initialize_actors(self):
+        xy = self._episode_rng.uniform([-0.15, -0.3], [-0.25, -0.1])
+        pos = np.hstack([xy, self.peg_half_size[2]])
+        ori = np.pi + self._episode_rng.uniform(-np.pi / 6, np.pi / 6)
+        ori = np.pi
+        quat = euler2quat(0, 0, ori)
+        self.peg.set_pose(Pose(pos, quat))
+        
+        xy = np.array([-0.4, -0.2])
+        pos = np.hstack([xy, self.peg_half_size[2]])
+        ori = np.pi
+        quat = euler2quat(0, 0, ori)
+        self.box.set_pose(Pose(pos, quat))
