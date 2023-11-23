@@ -1128,7 +1128,7 @@ class PegInsertionSide2DEnv_v5(PegInsertionSide2DEnv_v4):
     def _initialize_actors(self):
         xy = self._episode_rng.uniform([-0.15, -0.3], [-0.25, -0.1])
         pos = np.hstack([xy, self.peg_half_size[2]])
-        ori = np.pi + self._episode_rng.uniform(-np.pi / 6, np.pi / 6)
+        # ori = np.pi + self._episode_rng.uniform(-np.pi / 6, np.pi / 6)
         ori = np.pi
         quat = euler2quat(0, 0, ori)
         self.peg.set_pose(Pose(pos, quat))
