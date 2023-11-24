@@ -1141,3 +1141,16 @@ class PegInsertionSide2DEnv_v5(PegInsertionSide2DEnv_v4):
         ori = np.pi
         quat = euler2quat(0, 0, ori)
         self.box.set_pose(Pose(pos, quat))
+
+    def _initialize_agent(self):
+        if  self.robot_uid in ['xarm7', 'xarm7_d435']:
+            qpos = np.array(
+                    [0.0, 0.0, 0.0, np.pi / 6 + np.pi / 60, 0.0, np.pi / 6 + np.pi / 60, 0.0, 0.0446430, 0.0446430]
+                )
+            qpos[:-2] += self._episode_rng.normal(
+                0, self.robot_init_qpos_noise, len(qpos) - 2
+            )
+            self.agent.reset(qpos)
+            self.agent.robot.set_pose(Pose([-0.4639, 0.0, 0.0]))
+        else:
+            raise NotImplementedError(self.robot_uid)
