@@ -20,6 +20,8 @@ from .pd_ee_vel import (
     PDEEVelPosControllerConfig,
     PDEEVelXYController,
     PDEEVelXYControllerConfig,
+    PDEEVelYZController,
+    PDEEVelYZControllerConfig,
     PDEEVelPoseController,
     PDEEVelPoseControllerConfig,
 )

@@ -242,6 +242,15 @@ class GraspCubeEnv_v1(GraspCubeEnv_v0):
         ret['tcp_to_obj_pos'][0:2] += obs_noise
 
         return ret
+    
+@register_env("GraspCubeY-v0", max_episode_steps=100)
+class GraspCubeYEnv_v0(GraspCubeEnv_v1):
+    def _initialize_actors(self):
+        y = self._episode_rng.uniform(-0.05, 0.05, [2])
+        xyz = np.hstack([np.zeros([0]), y, self.cube_half_size[2]])
+        q = [1, 0, 0, 0]
+        self.obj.set_pose(Pose(xyz, q))
+
 
 @register_env("LiftCube-v0", max_episode_steps=200)
 class LiftCubeEnv(PickCubeEnv):
