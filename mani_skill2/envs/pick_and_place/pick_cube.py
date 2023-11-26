@@ -248,7 +248,7 @@ class GraspCubeEnv_v1(GraspCubeEnv_v0):
 
         return ret
     
-@register_env("GraspCubeY-v0", max_episode_steps=100)
+@register_env("GraspCubeY-v0", max_episode_steps=200)
 class GraspCubeYEnv_v0(GraspCubeEnv_v1):
     def _initialize_actors(self):
         y = self._episode_rng.uniform(-0.05, 0.05, [2])

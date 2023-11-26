@@ -125,8 +125,8 @@ class XArmDefaultConfig:
         )
         arm_pd_ee_vel_yz = PDEEVelYZControllerConfig(
             self.arm_joint_names,
-            -0.01,
-            0.01,
+            -0.05,
+            0.05,
             np.pi,
             self.arm_stiffness,
             self.arm_damping,
