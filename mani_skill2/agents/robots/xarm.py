@@ -26,8 +26,11 @@ class XArm(BaseAgent):
             self.robot.get_links(), "right_finger"
         )
 
-    def check_grasp(self, actor: sapien.ActorBase, min_impulse=1e-6, max_angle=85):
-        assert isinstance(actor, sapien.ActorBase), type(actor)
+    def check_grasp(self, actor: sapien.ActorBase, min_impulse=1e-6, max_angle=85, articulation=False):
+        # assert isinstance(actor, sapien.ActorBase), type(actor)
+        if not isinstance(actor, sapien.ActorBase):
+            return False
+        
         contacts = self.scene.get_contacts()
 
         limpulse = get_pairwise_contact_impulse(contacts, self.finger1_link, actor)

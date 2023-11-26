@@ -6,7 +6,12 @@ from sapien.core import Pose
 from transforms3d.euler import euler2quat
 
 from mani_skill2.utils.registration import register_env
-from mani_skill2.utils.sapien_utils import vectorize_pose
+from mani_skill2.utils.common import compute_angle_between
+from mani_skill2.utils.sapien_utils import (
+    vectorize_pose,
+    get_entity_by_name,
+    get_pairwise_contact_impulse,
+)
 
 from .base_env import StationaryManipulationEnv
 
@@ -250,6 +255,66 @@ class GraspCubeYEnv_v0(GraspCubeEnv_v1):
         xyz = np.hstack([np.zeros([0]), y, self.cube_half_size[2]])
         q = [1, 0, 0, 0]
         self.obj.set_pose(Pose(xyz, q))
+
+    def _build_cube(self, half_size):
+        builder: sapien.ArticulationBuilder = self._scene.create_articulation_builder()
+        box: sapien.LinkBuilder = builder.create_link_builder()
+        box.set_name('box')
+        color_box=(1, 0, 0)
+        render_material_box = self._renderer.create_material()
+        render_material_box.set_base_color(np.hstack([color_box, 1.0]))
+        box.add_box_collision(half_size=half_size)
+        box.add_box_visual(half_size=half_size, material=render_material_box)
+
+        front_slice = builder.create_link_builder(box)
+        front_slice.set_name('front_slice')
+        color_box=(0, 0, 1)
+        render_material_box = self._renderer.create_material()
+        render_material_box.set_base_color(np.hstack([color_box, 1.0]))
+        front_slice.add_box_collision(pose=Pose(p=np.array([half_size[0], 0, -0.005])), half_size=np.array([0.001, 0.005, 0.005]))
+        front_slice.add_box_visual(pose=Pose(p=np.array([half_size[0], 0, -0.005])), half_size=np.array([0.001, 0.005, 0.005]), material=render_material_box)
+
+        back_slice = builder.create_link_builder(box)
+        back_slice.set_name('back_slice')
+        color_box=(0, 0, 1)
+        render_material_box = self._renderer.create_material()
+        render_material_box.set_base_color(np.hstack([color_box, 1.0]))
+        back_slice.add_box_collision(pose=Pose(p=np.array([-half_size[0], 0, -0.005])), half_size=np.array([0.001, 0.005, 0.005]))
+        back_slice.add_box_visual(pose=Pose(p=np.array([-half_size[0], 0, -0.005])), half_size=np.array([0.001, 0.005, 0.005]), material=render_material_box)
+
+        cube = builder.build()
+        cube.set_name('cube')
+        return cube
+    
+    def check_articulation_grasp(self, articulation: sapien.ArticulationBase, min_impulse=1e-6, max_angle=85):
+        contacts = self._scene.get_contacts()
+
+        front_slice: sapien.LinkBase = get_entity_by_name(articulation.get_links(), 'front_slice')
+        back_slice: sapien.LinkBase = get_entity_by_name(articulation.get_links(), 'back_slice')
+
+        limpulse = get_pairwise_contact_impulse(contacts, self.agent.finger1_link, front_slice)
+        rimpulse = get_pairwise_contact_impulse(contacts, self.agent.finger2_link, back_slice)
+    
+        ldirection = self.agent.finger1_link.pose.to_transformation_matrix()[:3, 1]
+        rdirection = -self.agent.finger2_link.pose.to_transformation_matrix()[:3, 1]
+
+        # angle between impulse and open direction
+        langle = compute_angle_between(ldirection, limpulse)
+        rangle = compute_angle_between(rdirection, rimpulse)
+
+        lflag = (
+            np.linalg.norm(limpulse) >= min_impulse and np.rad2deg(langle) <= max_angle
+        )
+        rflag = (
+            np.linalg.norm(rimpulse) >= min_impulse and np.rad2deg(rangle) <= max_angle
+        )
+
+        return all([lflag, rflag])
+
+    def evaluate(self, **kwargs):
+        is_grasp = self.check_articulation_grasp(self.obj)
+
+        return dict(is_grasp=float(is_grasp), success=float(is_grasp))
 
 
 @register_env("LiftCube-v0", max_episode_steps=200)

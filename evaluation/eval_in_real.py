@@ -193,11 +193,11 @@ class RealXarm:
         elif self.mode == 'impedance_pos':
             self.cur_time = time.time()
             while self.cur_time - self.start_time < 0.05:
-                time.sleep(0.001)
+                time.sleep(0.0001)
                 self.cur_time = time.time()
+            self.start_time = time.time()
             self.arm.vc_set_joint_velocity(self._preprocess_arm_action(action[0:3]), is_radian=True, is_sync=True, duration=self.duration)
             self.arm.set_gripper_position(self._preprocess_gripper_action(action[3]), is_sync=False, speed=SPEED, wait=False)
-            self.start_time = time.time()
     
     def _preprocess_arm_action(self, arm_action):
         if self.mode =='position_pos':
@@ -347,12 +347,33 @@ if __name__ == '__main__':
     
     obs_sim = eval_envs.reset()
     flag = False
+    i = 0 
     while True:
         with torch.no_grad():
             obs = robot.get_obs()
             action = agent.get_eval_action(torch.Tensor(obs).to(device)).cpu().numpy()
             # obs_sim, rew, done, info = eval_envs.step(action[np.newaxis, :])
+            action = np.array([0.0, 0.0, -1.0, 0.5])
+            # if vectorize_pose(robot.tcp_pose)[1] <= -0.02:
+            #     action[1] = 0.0
+            if flag == False:
+                start_time = time.time()
+                # cur_time = time.time()
+                # last_z = vectorize_pose(robot.tcp_pose)[2]
+                start_z = vectorize_pose(robot.tcp_pose)[2]
+                flag = True
             robot.step(action)
+            i = i + 1
+            # print(time.time())
+            # print(i, (vectorize_pose(robot.tcp_pose)[2] - last_z) / (time.time() - cur_time), time.time() - cur_time)
+            # print(time.time())
+            # cur_time = time.time()
+            # last_z = vectorize_pose(robot.tcp_pose)[2]
             if vectorize_pose(robot.tcp_pose)[2] <= 0.02:
+                end_time = time.time()
+                end_z = vectorize_pose(robot.tcp_pose)[2]
                 break
             # obs_sim, rew, done, info = eval_envs.step(action)
+    print(end_time - start_time)
+    print(end_z - start_z)
+    print(i)
